@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Carta dei Vini</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- Intestazione -->
+  <header>
+    <div class="header-inner">
+      <div class="logo-area">
+        <img src="/locanda.png" alt="Locanda Tempesta" class="logo-img">
+        <p class="sottotitolo">Selezione curata dal nostro sommelier Davide</p>
+      </div>
+      <div class="header-actions">
+        <div id="google_translate_element"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Filtri -->
+  <nav class="filtri-bar">
+    <div class="filtri-scroll">
+      <button class="filtro-btn attivo" data-filtro="tutti">Tutti</button>
+      <div class="separatore-filtri"></div>
+      <div id="filtri-nazioni" class="filtri-gruppo"></div>
+    </div>
+  </nav>
+
+  <!-- Ricerca -->
+  <div class="ricerca-bar">
+    <input type="text" id="ricerca" placeholder="Cerca per nome, cantina, uva..." autocomplete="off">
+    <span class="ricerca-icon">&#128269;</span>
+  </div>
+
+  <!-- Lista vini -->
+  <main id="catalogo">
+    <div class="loader" id="loader">
+      <div class="loader-vite"></div>
+      <p>Caricamento carta dei vini...</p>
+    </div>
+  </main>
+
+  <!-- Modale dettaglio vino -->
+  <div class="overlay" id="overlay" onclick="chiudiModale()"></div>
+  <div class="modale" id="modale">
+    <button class="modale-chiudi" onclick="chiudiModale()">&#10005;</button>
+    <div class="modale-contenuto" id="modale-contenuto"></div>
+  </div>
+
+  <!-- Google Translate -->
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'it',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+  </script>
+  <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

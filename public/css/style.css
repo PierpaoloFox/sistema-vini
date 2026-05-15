@@ -1,0 +1,502 @@
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --oro: #e8d5a3;
+  --oro-chiaro: #f0e0b8;
+  --sfondo: #7a1828;
+  --sfondo-carta: #6d1522;
+  --sfondo-card: #631320;
+  --testo: #f5e6d0;
+  --testo-secondario: #d4a8a8;
+  --bordo: rgba(255, 255, 255, 0.15);
+  --raggio: 12px;
+  --ombra: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+html { font-size: 16px; }
+
+body {
+  background-color: var(--sfondo);
+  color: var(--testo);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 300;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+header {
+  background: linear-gradient(135deg, #6d1522 0%, #7a1828 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding: 20px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.logo-img {
+  height: 72px;
+  width: auto;
+  display: block;
+  /* Il logo ha lo stesso sfondo rosso: nessun bordo o ombra */
+  object-fit: contain;
+}
+
+.sottotitolo {
+  font-size: 0.65rem;
+  color: var(--oro);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  padding-left: 2px;
+}
+
+/* ── Google Translate ─────────────────────────────────────────────────────── */
+#google_translate_element {
+  font-size: 0.75rem;
+}
+
+#google_translate_element .goog-te-gadget {
+  font-family: 'Montserrat', sans-serif !important;
+  color: var(--testo-secondario) !important;
+}
+
+#google_translate_element select {
+  background: var(--sfondo-card);
+  color: var(--testo);
+  border: 1px solid var(--bordo);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  outline: none;
+}
+
+/* ── Filtri ───────────────────────────────────────────────────────────────── */
+.filtri-bar {
+  background: #6d1522;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding: 12px 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filtri-scroll {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  white-space: nowrap;
+  min-width: min-content;
+}
+
+.filtro-btn {
+  background: transparent;
+  border: 1px solid var(--bordo);
+  color: var(--testo-secondario);
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filtro-btn:hover {
+  border-color: var(--oro);
+  color: var(--oro);
+}
+
+.filtro-btn.attivo {
+  background: var(--oro);
+  border-color: var(--oro);
+  color: #0f0d0b;
+  font-weight: 500;
+}
+
+.separatore-filtri {
+  width: 1px;
+  height: 20px;
+  background: var(--bordo);
+  flex-shrink: 0;
+}
+
+/* ── Ricerca ──────────────────────────────────────────────────────────────── */
+.ricerca-bar {
+  position: relative;
+  padding: 16px 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+#ricerca {
+  width: 100%;
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  padding: 12px 40px 12px 16px;
+  color: var(--testo);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 300;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#ricerca::placeholder { color: var(--testo-secondario); }
+#ricerca:focus { border-color: var(--oro); }
+
+.ricerca-icon {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--testo-secondario);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+/* ── Catalogo / Griglia ───────────────────────────────────────────────────── */
+#catalogo {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 24px 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ── Card Vino ────────────────────────────────────────────────────────────── */
+.card-vino {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--raggio);
+  padding: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-vino::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--oro), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.card-vino:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ombra);
+  border-color: rgba(232, 213, 163, 0.4);
+}
+
+.card-vino:hover::before { opacity: 1; }
+
+.card-cantina {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--oro);
+  margin-bottom: 8px;
+}
+
+.card-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--testo);
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.tag {
+  font-size: 0.65rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--bordo);
+  color: var(--testo-secondario);
+  letter-spacing: 0.05em;
+}
+
+.tag.annata {
+  border-color: rgba(201, 168, 76, 0.3);
+  color: var(--oro-chiaro);
+}
+
+.card-descrizione {
+  font-size: 0.78rem;
+  color: var(--testo-secondario);
+  line-height: 1.6;
+  margin-bottom: 18px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-prezzi {
+  display: flex;
+  gap: 16px;
+  border-top: 1px solid var(--bordo);
+  padding-top: 14px;
+}
+
+.prezzo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prezzo-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--testo-secondario);
+}
+
+.prezzo-valore {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  color: var(--testo);
+  font-weight: 400;
+}
+
+.prezzo-valore.non-disponibile {
+  font-size: 0.8rem;
+  color: var(--bordo);
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* ── Loader ───────────────────────────────────────────────────────────────── */
+.loader {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--testo-secondario);
+  font-size: 0.85rem;
+}
+
+.loader-vite {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--bordo);
+  border-top-color: var(--oro);
+  border-radius: 50%;
+  margin: 0 auto 20px;
+  animation: gira 1s linear infinite;
+}
+
+@keyframes gira {
+  to { transform: rotate(360deg); }
+}
+
+.vuoto {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.vuoto p {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  color: var(--testo-secondario);
+  font-style: italic;
+}
+
+/* ── Modale ───────────────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.overlay.aperta {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modale {
+  position: fixed;
+  right: -100%;
+  top: 0;
+  bottom: 0;
+  width: min(520px, 100vw);
+  background: #6d1522;
+  border-left: 1px solid var(--bordo);
+  z-index: 300;
+  overflow-y: auto;
+  transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 48px 36px 40px;
+}
+
+.modale.aperta {
+  right: 0;
+}
+
+.modale-chiudi {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--testo-secondario);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.modale-chiudi:hover {
+  background: var(--bordo);
+  color: var(--testo);
+}
+
+.modale-cantina {
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--oro);
+  margin-bottom: 10px;
+}
+
+.modale-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.2rem;
+  font-weight: 400;
+  color: var(--testo);
+  line-height: 1.1;
+  margin-bottom: 20px;
+}
+
+.modale-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.modale-sezione {
+  margin-bottom: 24px;
+}
+
+.modale-sezione-titolo {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--oro);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--bordo);
+}
+
+.modale-descrizione {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--testo);
+  line-height: 1.8;
+}
+
+.modale-uve {
+  font-size: 0.85rem;
+  color: var(--testo-secondario);
+  line-height: 1.6;
+}
+
+.modale-prezzi {
+  display: flex;
+  gap: 24px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--raggio);
+  padding: 20px 24px;
+  margin-top: 32px;
+}
+
+.modale-prezzo-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modale-prezzo-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--testo-secondario);
+}
+
+.modale-prezzo-valore {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  color: var(--oro);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.modale-prezzo-valore.nd {
+  font-size: 0.9rem;
+  color: var(--bordo);
+  font-family: 'Montserrat', sans-serif;
+  margin-top: 8px;
+}
+
+/* ── Tablet: layout ottimizzato ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+  header { padding: 16px; }
+  #nome-ristorante { font-size: 1.4rem; }
+  .filtri-bar { padding: 10px 16px; }
+  .ricerca-bar { padding: 12px 16px; }
+  #catalogo { padding: 8px 16px 60px; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card-vino { padding: 18px; }
+  .modale { padding: 48px 24px 32px; }
+  .modale-nome { font-size: 1.8rem; }
+}
+
+@media (max-width: 480px) {
+  #catalogo { grid-template-columns: 1fr; }
+}
