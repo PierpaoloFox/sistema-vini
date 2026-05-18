@@ -34,6 +34,7 @@
         <div class="admin-logo"><span>&#9770;</span><span>Gestione Vini</span></div>
         <div class="admin-header-azioni">
           <a href="/" target="_blank" class="btn btn-outline">&#128065; Vedi catalogo</a>
+          <button class="btn btn-outline btn-stampa" onclick="stampaCarta()" title="Stampa la carta dei vini in formato PDF">&#128424; Stampa carta</button>
           <button class="btn btn-outline" onclick="scaricaBackup()" title="Scarica una copia di tutti i vini in formato JSON">&#128190; Esporta</button>
           <button class="btn btn-outline" onclick="document.getElementById('input-importa').click()" title="Importa un file di backup JSON">&#128229; Importa</button>
           <input type="file" id="input-importa" accept=".json" style="display:none" onchange="importaBackup(this)">

@@ -348,6 +348,336 @@ async function scaricaBackup() {
   }
 }
 
+// ── Stampa carta vini ─────────────────────────────────────────────────────────
+
+async function stampaCarta() {
+  if (tuttiVini.length === 0) {
+    mostraToast('Nessun vino da stampare.', 'errore');
+    return;
+  }
+
+  let nomeRistorante = 'Carta dei Vini';
+  let sottotitolo    = '';
+  try {
+    const r = await fetch('/api/config-pubblica');
+    const cfg = await r.json();
+    if (cfg.nome_ristorante) nomeRistorante = cfg.nome_ristorante;
+  } catch {}
+
+  const ORDINE = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange', 'Fortificato'];
+  const LABEL  = {
+    Bollicine:  'Bollicine & Spumanti',
+    Bianco:     'Vini Bianchi',
+    Rosso:      'Vini Rossi',
+    Rosato:     'Vini Rosati',
+    Dolce:      'Vini Dolci',
+    Orange:     'Orange Wine',
+    Fortificato:'Vini Fortificati',
+  };
+
+  // Raggruppa e ordina
+  const gruppi = {};
+  tuttiVini.forEach(v => {
+    const t = v.tipo || 'Altro';
+    if (!gruppi[t]) gruppi[t] = [];
+    gruppi[t].push(v);
+  });
+  Object.values(gruppi).forEach(g =>
+    g.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'))
+  );
+  const tipi = [
+    ...ORDINE.filter(t => gruppi[t]),
+    ...Object.keys(gruppi).filter(t => !ORDINE.includes(t))
+  ];
+
+  // Genera HTML delle sezioni
+  const sezioniHtml = tipi.map(tipo => {
+    const viniHtml = gruppi[tipo].map(v => {
+      const pBot = v.prezzo_bottiglia ? `<div class="pr-riga"><span>Bottiglia</span><strong>€&nbsp;${parseFloat(v.prezzo_bottiglia).toFixed(2)}</strong></div>` : '';
+      const pCal = v.prezzo_mescita   ? `<div class="pr-riga"><span>Calice</span><strong>€&nbsp;${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div>`   : '';
+      const prezzi = pBot || pCal
+        ? `<div class="vino-prezzi">${pBot}${pCal}</div>`
+        : `<div class="vino-prezzi"><span class="su-richiesta">Su richiesta</span></div>`;
+
+      return `<div class="vino">
+  <div class="vino-info">
+    <div class="vino-header">
+      ${v.cantina ? `<span class="vino-cantina">${v.cantina}</span><span class="sep">·</span>` : ''}
+      <span class="vino-nome">${v.nome || '—'}</span>
+      ${v.annata  ? `<span class="vino-annata">${v.annata}</span>` : ''}
+    </div>
+    ${(v.regione || v.nazione) ? `<div class="vino-meta">${[v.regione, v.nazione].filter(Boolean).join(' · ')}</div>` : ''}
+    ${v.uve         ? `<div class="vino-meta vino-uve">${v.uve}</div>` : ''}
+    ${v.descrizione ? `<div class="vino-descr">${v.descrizione}</div>` : ''}
+  </div>
+  ${prezzi}
+</div>`;
+    }).join('');
+
+    return `<section class="sezione">
+  <h2 class="sezione-titolo"><span>${LABEL[tipo] || tipo}</span></h2>
+  ${viniHtml}
+</section>`;
+  }).join('\n');
+
+  const data = new Date().toLocaleDateString('it-IT', { year: 'numeric', month: 'long' });
+
+  const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>${nomeRistorante} — Carta dei Vini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+@page {
+  size: A4;
+  margin: 18mm 20mm 20mm;
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 7pt;
+    color: #b0a59a;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 9pt;
+  color: #1a1210;
+  background: #fff;
+  line-height: 1.5;
+}
+
+/* ── Intestazione ── */
+.intestazione {
+  text-align: center;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #7a1828;
+}
+
+.int-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 30pt;
+  font-weight: 300;
+  color: #7a1828;
+  letter-spacing: 4px;
+  line-height: 1.1;
+}
+
+.int-carta {
+  font-size: 7.5pt;
+  font-weight: 500;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: #9b8f84;
+  margin-top: 4px;
+}
+
+.int-data {
+  font-size: 7pt;
+  color: #c0b0a5;
+  margin-top: 5px;
+}
+
+/* ── Sezioni ── */
+.sezione {
+  margin-bottom: 20px;
+  break-inside: avoid-page;
+}
+
+.sezione-titolo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 13pt;
+  font-weight: 600;
+  color: #7a1828;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.sezione-titolo span { white-space: nowrap; }
+
+.sezione-titolo::after {
+  content: '';
+  display: block;
+  flex: 1;
+  height: 1px;
+  background: #e8d5a3;
+}
+
+/* ── Voce vino ── */
+.vino {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px dotted #e8d5a3;
+  break-inside: avoid;
+}
+
+.vino:last-child { border-bottom: none; }
+
+.vino-info { flex: 1; min-width: 0; }
+
+.vino-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 1px;
+}
+
+.vino-cantina {
+  font-size: 7.5pt;
+  font-weight: 500;
+  color: #7a6a5f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sep { color: #c0b0a5; font-size: 7pt; }
+
+.vino-nome {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 12.5pt;
+  font-weight: 600;
+  color: #1a1210;
+}
+
+.vino-annata {
+  font-size: 8pt;
+  font-weight: 300;
+  color: #9b8f84;
+}
+
+.vino-meta {
+  font-size: 7.5pt;
+  color: #9b8f84;
+  font-style: italic;
+  margin-top: 1px;
+}
+
+.vino-uve { color: #7a6a5f; font-style: normal; }
+
+.vino-descr {
+  font-size: 7.5pt;
+  color: #6b6158;
+  font-style: italic;
+  line-height: 1.55;
+  margin-top: 3px;
+}
+
+/* ── Prezzi ── */
+.vino-prezzi {
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 88px;
+}
+
+.pr-riga {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 5px;
+  line-height: 1.7;
+}
+
+.pr-riga span {
+  font-size: 6.5pt;
+  font-weight: 300;
+  color: #b0a59a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pr-riga strong {
+  font-size: 9pt;
+  font-weight: 600;
+  color: #1a1210;
+}
+
+.su-richiesta {
+  font-size: 7pt;
+  color: #c0b0a5;
+  font-style: italic;
+}
+
+/* ── Stampa ── */
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+}
+
+/* ── Pulsante (solo schermo) ── */
+@media screen {
+  .barra-stampa {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #fff;
+    border-bottom: 1px solid #e8d5a3;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  .btn-print {
+    background: #7a1828;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  .btn-print:hover { background: #5e1220; }
+  body { padding-bottom: 40px; }
+  .contenuto { max-width: 780px; margin: 0 auto; padding: 20px 20px; }
+}
+</style>
+</head>
+<body>
+<div class="barra-stampa no-print">
+  <button class="btn-print" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
+</div>
+<div class="contenuto">
+  <header class="intestazione">
+    <div class="int-nome">${nomeRistorante}</div>
+    <div class="int-carta">Carta dei Vini</div>
+    <div class="int-data">${data}</div>
+  </header>
+  ${sezioniHtml}
+</div>
+<script>
+  // Attendi il caricamento dei font prima di stampare
+  document.fonts.ready.then(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('auto') === '1') window.print();
+  });
+<\/script>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) {
+    mostraToast('Abilita i popup per questa pagina e riprova.', 'errore');
+    return;
+  }
+  w.document.write(html);
+  w.document.close();
+}
+
 // ── Importa da TXT ────────────────────────────────────────────────────────────
 
 function importaDaTxt(input) {

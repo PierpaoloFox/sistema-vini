@@ -262,6 +262,16 @@ body {
 }
 .btn-outline:hover { border-color: var(--testo-2); }
 
+.btn-stampa {
+  border-color: #7a1828 !important;
+  color: #7a1828 !important;
+}
+.btn-stampa:hover {
+  background: #7a1828 !important;
+  color: #fff !important;
+  border-color: #7a1828 !important;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--testo-2);
