@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
+const { Pool } = require('pg');
 
 // ─── Configurazione ───────────────────────────────────────────────────────────
 
@@ -17,15 +18,8 @@ if (process.env.PORT)              config.porta              = process.env.PORT;
 if (!config.anthropic_api_key) { console.error('Errore: ANTHROPIC_API_KEY mancante.'); process.exit(1); }
 if (!config.password)          { console.error('Errore: ADMIN_PASSWORD mancante.');    process.exit(1); }
 
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_REPO  = process.env.GITHUB_REPO;   // es. 'PierpaoloFox/sistema-vini'
-const GITHUB_FILE  = 'data/vini.json';
-const DATA_FILE    = process.env.DATA_FILE || path.join(__dirname, 'data', 'vini.json');
-
-// Assicura cartella locale (usata in sviluppo o come fallback)
-const dataDir = path.dirname(DATA_FILE);
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]', 'utf8');
+const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'vini.json');
+const USE_DB    = !!process.env.DATABASE_URL;
 
 const app = express();
 const PORT = config.porta || 3000;
@@ -35,83 +29,82 @@ const sessioni = new Set();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Storage: GitHub API (produzione) o file locale (sviluppo) ───────────────
+// ─── Storage: PostgreSQL (produzione) o file locale (sviluppo) ───────────────
 
-let cacheVini = null;
-let cacheSha  = null;
-let cacheTime = 0;
-const CACHE_TTL = 10000; // 10 secondi
+let pool = null;
+
+if (USE_DB) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+}
+
+async function initDB() {
+  if (!USE_DB) {
+    // Assicura cartella locale
+    const dir = path.dirname(DATA_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]', 'utf8');
+    return;
+  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vini (
+      id                TEXT PRIMARY KEY,
+      tipo              TEXT DEFAULT '',
+      cantina           TEXT DEFAULT '',
+      nome              TEXT DEFAULT '',
+      annata            TEXT DEFAULT '',
+      uve               TEXT DEFAULT '',
+      descrizione       TEXT DEFAULT '',
+      nazione           TEXT DEFAULT '',
+      regione           TEXT DEFAULT '',
+      prezzo_bottiglia  NUMERIC,
+      prezzo_mescita    NUMERIC,
+      creato_il         TEXT,
+      modificato_il     TEXT
+    )
+  `);
+  console.log('✅ Tabella vini pronta.');
+}
 
 async function caricaVini() {
-  if (!GITHUB_TOKEN || !GITHUB_REPO) {
+  if (!USE_DB) {
     try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { return []; }
   }
-  if (cacheVini && Date.now() - cacheTime < CACHE_TTL) return cacheVini;
-  try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
-    });
-    if (!res.ok) return cacheVini || [];
-    const data = await res.json();
-    const testo = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
-    cacheVini = JSON.parse(testo);
-    cacheSha  = data.sha;
-    cacheTime = Date.now();
-    return cacheVini;
-  } catch (e) {
-    console.error('Errore lettura GitHub:', e.message);
-    return cacheVini || [];
-  }
+  const result = await pool.query('SELECT * FROM vini ORDER BY creato_il ASC');
+  return result.rows;
 }
 
 async function salvaVini(vini) {
-  if (!GITHUB_TOKEN || !GITHUB_REPO) {
-    console.warn('⚠️  salvaVini: GITHUB_TOKEN/GITHUB_REPO non impostati → uso file locale');
+  if (!USE_DB) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(vini, null, 2), 'utf8');
     return;
   }
-  // Recupera SHA aggiornato se necessario
-  if (!cacheSha) {
-    const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
-    });
-    if (r.ok) { const d = await r.json(); cacheSha = d.sha; }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM vini');
+    for (const v of vini) {
+      await client.query(
+        `INSERT INTO vini
+           (id, tipo, cantina, nome, annata, uve, descrizione, nazione, regione,
+            prezzo_bottiglia, prezzo_mescita, creato_il, modificato_il)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [ v.id, v.tipo || '', v.cantina || '', v.nome || '', v.annata || '',
+          v.uve || '', v.descrizione || '', v.nazione || '', v.regione || '',
+          v.prezzo_bottiglia || null, v.prezzo_mescita || null,
+          v.creato_il || null, v.modificato_il || null ]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
   }
-  const contenuto = Buffer.from(JSON.stringify(vini, null, 2), 'utf8').toString('base64');
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${GITHUB_TOKEN}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/vnd.github+json'
-    },
-    body: JSON.stringify({
-      message: `Vini aggiornati ${new Date().toISOString().slice(0,16).replace('T',' ')}`,
-      content: contenuto,
-      ...(cacheSha && { sha: cacheSha })
-    })
-  });
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(`Errore salvataggio GitHub: ${err.message}`);
-  }
-  const data = await res.json();
-  cacheSha  = data.content.sha;
-  cacheVini = vini;
-  cacheTime = Date.now();
 }
-
-// ─── Diagnostica storage ──────────────────────────────────────────────────────
-
-
-app.get('/api/admin/storage-info', requireAuth, (req, res) => {
-  res.json({
-    modalita:       (GITHUB_TOKEN && GITHUB_REPO) ? 'github' : 'locale',
-    github_repo:    GITHUB_REPO  || null,
-    token_presente: !!GITHUB_TOKEN,
-    cache_sha:      cacheSha || null,
-  });
-});
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -134,6 +127,14 @@ app.post('/api/login', (req, res) => {
 app.post('/api/logout', requireAuth, (req, res) => {
   sessioni.delete(req.headers['x-auth-token']);
   res.json({ ok: true });
+});
+
+// ─── Diagnostica storage ──────────────────────────────────────────────────────
+
+app.get('/api/admin/storage-info', requireAuth, (req, res) => {
+  res.json({
+    modalita: USE_DB ? 'postgres' : 'locale',
+  });
 });
 
 // ─── API pubblica ─────────────────────────────────────────────────────────────
@@ -258,9 +259,13 @@ Testo: "${testo.trim()}"`
 
 // ─── Avvio ────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  const storage = (GITHUB_TOKEN && GITHUB_REPO) ? `GitHub (${GITHUB_REPO})` : 'file locale';
-  console.log(`\n🍷  Sistema Vini avviato — storage: ${storage}`);
-  console.log(`   Catalogo → http://localhost:${PORT}`);
-  console.log(`   Admin    → http://localhost:${PORT}/admin\n`);
+initDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\n🍷  Sistema Vini avviato — storage: ${USE_DB ? 'PostgreSQL (Railway)' : 'file locale'}`);
+    console.log(`   Catalogo → http://localhost:${PORT}`);
+    console.log(`   Admin    → http://localhost:${PORT}/admin\n`);
+  });
+}).catch(err => {
+  console.error('Errore inizializzazione database:', err.message);
+  process.exit(1);
 });

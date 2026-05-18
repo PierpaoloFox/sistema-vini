@@ -49,12 +49,15 @@ async function verificaStorage() {
     const res = await apiFetch('/api/admin/storage-info');
     const info = await res.json();
     const banner = document.getElementById('banner-storage');
-    if (info.modalita === 'github') {
+    if (info.modalita === 'postgres') {
       banner.className = 'banner-storage banner-ok';
-      banner.innerHTML = `✓ Dati salvati su GitHub <strong>(${info.github_repo})</strong> — al sicuro da ogni redeploy`;
+      banner.innerHTML = `✓ Dati salvati su <strong>PostgreSQL (Railway)</strong> — al sicuro da ogni redeploy`;
+    } else if (info.modalita === 'github') {
+      banner.className = 'banner-storage banner-ok';
+      banner.innerHTML = `✓ Dati salvati su <strong>GitHub</strong> — al sicuro da ogni redeploy`;
     } else {
       banner.className = 'banner-storage banner-warn';
-      banner.innerHTML = `⚠️ <strong>Attenzione:</strong> i dati vengono salvati solo sul disco di Railway (variabili GITHUB_TOKEN / GITHUB_REPO non rilevate). Aggiungerle in Railway → Variables per proteggere i dati.`;
+      banner.innerHTML = `⚠️ <strong>Attenzione:</strong> i dati vengono salvati solo sul disco locale — si perdono ad ogni redeploy.`;
     }
   } catch {}
 }
