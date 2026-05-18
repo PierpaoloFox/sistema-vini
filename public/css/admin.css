@@ -290,48 +290,40 @@ body {
 }
 .btn-ia:hover:not(:disabled) { opacity: 0.9; }
 
-.btn-cerca-foto {
-  background: transparent;
-  border: 1px solid var(--bordo);
-  color: var(--testo-2);
-  font-size: 0.75rem;
-  padding: 5px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: 'Inter', sans-serif;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.btn-cerca-foto:hover:not(:disabled) { border-color: var(--testo-2); color: var(--testo); }
-.btn-cerca-foto:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .label-hint {
   font-size: 0.65rem;
   color: #7c3aed;
-  font-weight: 400;
+  font-weight: 500;
   margin-left: 4px;
-  font-style: italic;
+  background: #f0ebff;
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
-.foto-input-wrap { display: flex; flex-direction: column; gap: 8px; }
-
-.foto-preview-wrap {
+/* Pulsante AI grande */
+.btn-ia-grande {
   width: 100%;
-  max-height: 140px;
-  border: 1px solid var(--bordo);
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  background: var(--sfondo);
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  letter-spacing: 0.03em;
 }
 
-.foto-preview-wrap img {
-  max-width: 100%;
-  max-height: 140px;
-  object-fit: contain;
+/* Sezione campi AI */
+.sezione-ai {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 20px;
+  background: #f8f5ff;
+  border: 1px solid #e0d5ff;
+  border-radius: 10px;
+  margin-top: 4px;
 }
+
+.campo-full-ai { grid-column: 1 / -1; }
 
 .btn-full { width: 100%; justify-content: center; }
 

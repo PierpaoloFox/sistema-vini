@@ -4,11 +4,6 @@ let idDaEliminare = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   if (authToken) mostraApp();
-
-  // Anteprima foto quando si incolla l'URL
-  document.getElementById('f-foto-url').addEventListener('input', e => {
-    aggiornaAnteprimaFoto(e.target.value);
-  });
 });
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -123,8 +118,6 @@ function apriFormNuovo() {
   document.getElementById('vino-id').value = '';
   document.getElementById('form-vino').reset();
   document.getElementById('stato-ia').textContent = '';
-  document.getElementById('stato-foto').textContent = '';
-  nascondiAnteprimaFoto();
   apriPannello();
 }
 
@@ -143,10 +136,7 @@ function apriFormModifica(id) {
   document.getElementById('f-regione').value         = v.regione || '';
   document.getElementById('f-prezzo-bottiglia').value = v.prezzo_bottiglia || '';
   document.getElementById('f-prezzo-mescita').value  = v.prezzo_mescita || '';
-  document.getElementById('f-foto-url').value        = v.foto_url || '';
   document.getElementById('stato-ia').textContent    = '';
-  document.getElementById('stato-foto').textContent  = '';
-  aggiornaAnteprimaFoto(v.foto_url || '');
   apriPannello();
 }
 
@@ -179,7 +169,6 @@ async function salvaVino(e) {
     regione:          document.getElementById('f-regione').value.trim(),
     prezzo_bottiglia: document.getElementById('f-prezzo-bottiglia').value || null,
     prezzo_mescita:   document.getElementById('f-prezzo-mescita').value || null,
-    foto_url:         document.getElementById('f-foto-url').value.trim(),
   };
 
   btnSalva.disabled = true;
@@ -273,57 +262,6 @@ async function generaDescrizione() {
     btn.disabled = false;
     btn.textContent = '✦ Genera con AI (descrizione + origine)';
   }
-}
-
-// ── Cerca immagine bottiglia ──────────────────────────────────────────────────
-
-async function cercaImmagine() {
-  const nome    = document.getElementById('f-nome').value.trim();
-  const cantina = document.getElementById('f-cantina').value.trim();
-  if (!nome && !cantina) { mostraToast('Inserisci almeno nome o cantina prima di cercare.', 'errore'); return; }
-
-  const btn = document.getElementById('btn-cerca-foto');
-  const statoEl = document.getElementById('stato-foto');
-  btn.disabled = true;
-  btn.textContent = 'Ricerca...';
-  statoEl.textContent = 'Ricerca immagine in corso...';
-
-  try {
-    const res = await apiFetch('/api/admin/cerca-immagine', {
-      method: 'POST',
-      body: JSON.stringify({ nome, cantina })
-    });
-    const dati = await res.json();
-
-    if (dati.foto_url) {
-      document.getElementById('f-foto-url').value = dati.foto_url;
-      aggiornaAnteprimaFoto(dati.foto_url);
-      statoEl.textContent = `Immagine trovata (fonte: ${dati.fonte || 'web'}).`;
-    } else {
-      statoEl.textContent = 'Nessuna immagine trovata. Puoi incollare un URL manualmente.';
-    }
-  } catch {
-    statoEl.textContent = 'Errore durante la ricerca.';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '📷 Cerca online';
-  }
-}
-
-function aggiornaAnteprimaFoto(url) {
-  const wrap = document.getElementById('foto-preview-wrap');
-  const img  = document.getElementById('foto-preview');
-  if (url) {
-    img.src = url;
-    wrap.classList.remove('nascosto');
-  } else {
-    nascondiAnteprimaFoto();
-  }
-}
-
-function nascondiAnteprimaFoto() {
-  document.getElementById('foto-preview-wrap').classList.add('nascosto');
-  document.getElementById('foto-preview').src = '';
 }
 
 // ── Toast ─────────────────────────────────────────────────────────────────────

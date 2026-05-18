@@ -116,13 +116,8 @@ function cardVino(v) {
     v.regione ? `<span class="tag">${v.regione}</span>` : '',
   ].filter(Boolean).join('');
 
-  const fotoHtml = v.foto_url
-    ? `<img class="card-foto" src="${v.foto_url}" alt="${v.nome}" loading="lazy" onerror="this.style.display='none'">`
-    : '';
-
   return `
     <article class="card-vino" onclick="apriModale('${v.id}')">
-      ${fotoHtml}
       <div class="card-corpo">
         <div class="card-header">
           <div>
@@ -158,7 +153,6 @@ function apriModale(id) {
   const pMescita   = v.prezzo_mescita   ? `<div class="modale-prezzo-item"><span class="modale-prezzo-label">Al calice</span><span class="modale-prezzo-valore">€ ${parseFloat(v.prezzo_mescita).toFixed(2)}</span></div>` : '';
 
   document.getElementById('modale-contenuto').innerHTML = `
-    ${v.foto_url ? `<img class="modale-foto" src="${v.foto_url}" alt="${v.nome}" onerror="this.style.display='none'">` : ''}
     ${v.cantina ? `<div class="modale-cantina">${v.cantina}</div>` : ''}
     <h2 class="modale-nome">${v.nome || 'Vino senza nome'}</h2>
     <div class="modale-tags">${badgeTipo(v.tipo)}${tags}</div>
