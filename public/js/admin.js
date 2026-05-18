@@ -259,11 +259,13 @@ async function generaDescrizione() {
     const dati = await res.json();
     if (!res.ok) throw new Error(dati.errore || 'Errore AI');
 
+    if (dati.tipo)        document.getElementById('f-tipo').value        = dati.tipo;
+    if (dati.uve)         document.getElementById('f-uve').value         = dati.uve;
     if (dati.descrizione) document.getElementById('f-descrizione').value = dati.descrizione;
     if (dati.nazione)     document.getElementById('f-nazione').value     = dati.nazione;
     if (dati.regione)     document.getElementById('f-regione').value     = dati.regione;
 
-    statoEl.textContent = 'Descrizione, nazione e regione generate da Claude AI.';
+    statoEl.textContent = 'Tipo, uve, descrizione, nazione e regione generati da Claude AI.';
   } catch (err) {
     statoEl.textContent = '';
     mostraToast(err.message, 'errore');

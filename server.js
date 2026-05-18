@@ -151,23 +151,25 @@ app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
   try {
     const messaggio = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 400,
+      max_tokens: 500,
       messages: [{
         role: 'user',
         content: `Sei un sommelier esperto. Analizza questo vino e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
 
 {
+  "tipo": "uno tra: Rosso, Bianco, Bollicine, Orange",
+  "uve": "vitigni principali con percentuale se nota, es. Nebbiolo 100%",
   "descrizione": "descrizione sensoriale elegante max 80 parole, evoca profumi sapori e abbinamenti",
-  "nazione": "paese di origine dedotto dal nome/cantina/uve",
+  "nazione": "paese di origine dedotto dal nome/cantina",
   "regione": "regione vinicola di origine dedotta dal contesto"
 }
 
-Dati del vino:
+Dati del vino (compila i campi mancanti basandoti sulle tue conoscenze):
 - Nome: ${nome}
 - Cantina: ${cantina || 'N/D'}
-- Tipo: ${tipo || 'N/D'}
 - Annata: ${annata || 'N/D'}
-- Uve: ${uve || 'N/D'}`
+- Tipo già indicato: ${tipo || 'da dedurre'}
+- Uve già indicate: ${uve || 'da dedurre'}`
       }]
     });
 
