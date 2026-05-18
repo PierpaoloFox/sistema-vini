@@ -5,7 +5,7 @@ let testoCerca    = '';
 let vistaCorrente = 'lista'; // default: lista
 
 // Ordine fisso delle sezioni
-const ORDINE_TIPI = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange'];
+const ORDINE_TIPI = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange', 'Fortificato'];
 
 // ── Avvio ─────────────────────────────────────────────────────────────────────
 

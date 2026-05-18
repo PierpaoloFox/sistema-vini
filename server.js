@@ -155,7 +155,7 @@ app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
         content: `Sei un sommelier esperto. Analizza questo vino e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
 
 {
-  "tipo": "uno tra: Rosso, Bianco, Bollicine, Rosato, Dolce, Orange",
+  "tipo": "uno tra: Rosso, Bianco, Bollicine, Rosato, Dolce, Orange, Fortificato",
   "uve": "vitigni principali con percentuale se nota, es. Nebbiolo 100%",
   "descrizione": "descrizione sensoriale elegante max 80 parole, evoca profumi sapori e abbinamenti",
   "nazione": "paese di origine dedotto dal nome/cantina",
