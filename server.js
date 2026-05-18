@@ -140,6 +140,16 @@ app.delete('/api/admin/vini/:id', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── Backup ───────────────────────────────────────────────────────────────────
+
+app.get('/api/admin/backup', requireAuth, (req, res) => {
+  const vini = caricaVini();
+  const data = new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Disposition', `attachment; filename="vini-backup-${data}.json"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(vini, null, 2));
+});
+
 // ─── AI: genera descrizione + nazione + regione ───────────────────────────────
 
 app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {

@@ -264,6 +264,28 @@ async function generaDescrizione() {
   }
 }
 
+// ── Backup ───────────────────────────────────────────────────────────────────
+
+async function scaricaBackup() {
+  const a = document.createElement('a');
+  a.href = '/api/admin/backup';
+  a.setAttribute('x-auth-token', authToken);
+  // Usa fetch per passare il token, poi crea un blob scaricabile
+  try {
+    const res = await apiFetch('/api/admin/backup');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const data = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `vini-backup-${data}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    mostraToast('Errore durante il backup.', 'errore');
+  }
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
 function mostraToast(messaggio, tipo = '') {
