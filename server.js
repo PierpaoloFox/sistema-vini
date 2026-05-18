@@ -103,17 +103,6 @@ async function salvaVini(vini) {
 
 // ─── Diagnostica storage ──────────────────────────────────────────────────────
 
-// Endpoint pubblico temporaneo — mostra cosa legge process.env (senza esporre il token)
-app.get('/api/debug-env', (req, res) => {
-  res.json({
-    GITHUB_TOKEN_set:  !!process.env.GITHUB_TOKEN,
-    GITHUB_TOKEN_preview: process.env.GITHUB_TOKEN ? process.env.GITHUB_TOKEN.slice(0, 8) + '...' : null,
-    GITHUB_REPO:       process.env.GITHUB_REPO || null,
-    NODE_ENV:          process.env.NODE_ENV || null,
-    PORT:              process.env.PORT || null,
-    ANTHROPIC_set:     !!process.env.ANTHROPIC_API_KEY,
-  });
-});
 
 app.get('/api/admin/storage-info', requireAuth, (req, res) => {
   res.json({
