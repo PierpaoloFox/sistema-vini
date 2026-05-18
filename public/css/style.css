@@ -72,17 +72,85 @@ header {
   padding-left: 2px;
 }
 
-/* ── Google Translate ─────────────────────────────────────────────────────── */
-#google_translate_element select {
-  background: rgba(0,0,0,0.3);
-  color: var(--testo);
-  border: 1px solid var(--bordo);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  outline: none;
+/* ── Selettore lingua custom ──────────────────────────────────────────────── */
+.lingua-wrap {
+  position: relative;
 }
+
+.lingua-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--bordo);
+  border-radius: 8px;
+  color: var(--testo);
+  padding: 7px 12px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.lingua-btn:hover {
+  background: rgba(255,255,255,0.14);
+  border-color: var(--oro);
+  color: var(--oro);
+}
+
+.lingua-globo { font-size: 1rem; }
+.lingua-freccia { font-size: 0.6rem; opacity: 0.7; transition: transform 0.2s; }
+
+.lingua-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #3a0a10;
+  border: 1px solid var(--bordo);
+  border-radius: 10px;
+  overflow: hidden;
+  min-width: 150px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 200;
+  flex-direction: column;
+}
+
+.lingua-menu.aperto {
+  display: flex;
+}
+
+.lingua-menu button {
+  background: transparent;
+  border: none;
+  color: var(--testo);
+  padding: 10px 16px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.lingua-menu button:hover {
+  background: rgba(232,213,163,0.12);
+  color: var(--oro);
+}
+
+.lingua-menu button + button {
+  border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Nascondi il widget GT originale */
+#google_translate_element,
+.goog-te-banner-frame,
+.skiptranslate { display: none !important; }
+body { top: 0 !important; }
 
 /* ── Filtri ───────────────────────────────────────────────────────────────── */
 .filtri-bar {
@@ -564,18 +632,19 @@ header {
   border: none;
   border-bottom: 3px solid transparent;
   color: var(--testo-secondario);
-  padding: 14px 24px;
+  padding: 14px 28px;
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.78rem;
-  font-weight: 400;
-  letter-spacing: 0.1em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .cat-btn:hover { color: var(--oro); }
-.cat-btn.attivo { color: var(--oro); border-bottom-color: var(--oro); font-weight: 500; }
+.cat-btn.attivo { color: var(--oro); border-bottom-color: var(--oro); }
 
 /* badge birra e distillato */
 .sezione-tipo-badge.ipa,
