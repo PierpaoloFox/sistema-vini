@@ -100,11 +100,12 @@ function renderTabella(vini) {
     const tipoHtml  = v.tipo
       ? `<span style="color:${tipoColor};font-weight:500;font-size:0.8rem">${v.tipo}</span>`
       : '—';
+    const terminato = v.terminato;
     return `
-    <tr>
+    <tr class="${terminato ? 'riga-terminata' : ''}">
       <td>${tipoHtml}</td>
       <td class="td-cantina">${v.cantina || '—'}</td>
-      <td class="td-nome">${v.nome}</td>
+      <td class="td-nome">${v.nome}${terminato ? ' <span class="badge-terminato">Terminato</span>' : ''}</td>
       <td>${v.nazione || '—'}</td>
       <td>${v.regione || '—'}</td>
       <td>${v.annata || '—'}</td>
@@ -113,6 +114,7 @@ function renderTabella(vini) {
       <td>
         <div class="azioni-cella">
           <button class="btn btn-outline btn-sm" onclick="apriFormModifica('${v.id}')">Modifica</button>
+          <button class="btn btn-sm ${terminato ? 'btn-disponibile' : 'btn-termina'}" onclick="toggleTerminato('${v.id}')">${terminato ? '↩ Disponibile' : 'Terminato'}</button>
           <button class="btn btn-ghost btn-sm"   onclick="richiestaElimina('${v.id}')">Elimina</button>
         </div>
       </td>
@@ -218,6 +220,20 @@ async function salvaVino(e) {
   } finally {
     btnSalva.disabled = false;
     btnSalva.textContent = 'Salva vino';
+  }
+}
+
+// ── Termina / Disponibile ─────────────────────────────────────────────────────
+
+async function toggleTerminato(id) {
+  try {
+    const res = await apiFetch(`/api/admin/vini/${id}/termina`, { method: 'PUT' });
+    if (!res.ok) throw new Error('Errore');
+    const vino = await res.json();
+    await caricaVini();
+    mostraToast(vino.terminato ? `"${vino.nome}" segnato come terminato.` : `"${vino.nome}" di nuovo disponibile.`, 'successo');
+  } catch {
+    mostraToast('Errore nell\'aggiornamento.', 'errore');
   }
 }
 
@@ -370,8 +386,9 @@ async function scaricaBackup() {
 // ── Stampa carta vini ─────────────────────────────────────────────────────────
 
 async function stampaCarta() {
-  if (tuttiVini.length === 0) {
-    mostraToast('Nessun vino da stampare.', 'errore');
+  const viniDisponibili = tuttiVini.filter(v => !v.terminato);
+  if (viniDisponibili.length === 0) {
+    mostraToast('Nessun vino disponibile da stampare.', 'errore');
     return;
   }
 
@@ -383,6 +400,7 @@ async function stampaCarta() {
     if (cfg.nome_ristorante) nomeRistorante = cfg.nome_ristorante;
   } catch {}
 
+  const vini = viniDisponibili;
   const ORDINE = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange', 'Fortificato'];
   const LABEL  = {
     Bollicine:  'Bollicine & Spumanti',
@@ -396,7 +414,7 @@ async function stampaCarta() {
 
   // Raggruppa e ordina
   const gruppi = {};
-  tuttiVini.forEach(v => {
+  vini.forEach(v => {
     const t = v.tipo || 'Altro';
     if (!gruppi[t]) gruppi[t] = [];
     gruppi[t].push(v);

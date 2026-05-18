@@ -62,9 +62,12 @@ async function initDB() {
       prezzo_bottiglia  NUMERIC,
       prezzo_mescita    NUMERIC,
       creato_il         TEXT,
-      modificato_il     TEXT
+      modificato_il     TEXT,
+      terminato         BOOLEAN DEFAULT FALSE
     )
   `);
+  // Migrazione: aggiunge la colonna se la tabella esisteva già senza di essa
+  await pool.query(`ALTER TABLE vini ADD COLUMN IF NOT EXISTS terminato BOOLEAN DEFAULT FALSE`);
   console.log('✅ Tabella vini pronta.');
 }
 
@@ -89,12 +92,12 @@ async function salvaVini(vini) {
       await client.query(
         `INSERT INTO vini
            (id, tipo, cantina, nome, annata, uve, descrizione, nazione, regione,
-            prezzo_bottiglia, prezzo_mescita, creato_il, modificato_il)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+            prezzo_bottiglia, prezzo_mescita, creato_il, modificato_il, terminato)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
         [ v.id, v.tipo || '', v.cantina || '', v.nome || '', v.annata || '',
           v.uve || '', v.descrizione || '', v.nazione || '', v.regione || '',
           v.prezzo_bottiglia || null, v.prezzo_mescita || null,
-          v.creato_il || null, v.modificato_il || null ]
+          v.creato_il || null, v.modificato_il || null, v.terminato || false ]
       );
     }
     await client.query('COMMIT');
@@ -140,7 +143,8 @@ app.get('/api/admin/storage-info', requireAuth, (req, res) => {
 // ─── API pubblica ─────────────────────────────────────────────────────────────
 
 app.get('/api/vini', async (req, res) => {
-  res.json(await caricaVini());
+  const vini = await caricaVini();
+  res.json(vini.filter(v => !v.terminato));
 });
 
 app.get('/api/config-pubblica', (req, res) => {
@@ -192,6 +196,15 @@ app.put('/api/admin/vini/:id', requireAuth, async (req, res) => {
     prezzo_mescita:   req.body.prezzo_mescita   ?? vini[idx].prezzo_mescita,
     modificato_il: new Date().toISOString()
   };
+  await salvaVini(vini);
+  res.json(vini[idx]);
+});
+
+app.put('/api/admin/vini/:id/termina', requireAuth, async (req, res) => {
+  const vini = await caricaVini();
+  const idx = vini.findIndex(v => v.id === req.params.id);
+  if (idx === -1) return res.status(404).json({ errore: 'Vino non trovato.' });
+  vini[idx].terminato = !vini[idx].terminato;
   await salvaVini(vini);
   res.json(vini[idx]);
 });

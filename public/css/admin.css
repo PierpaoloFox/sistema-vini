@@ -272,6 +272,39 @@ body {
   border-color: #7a1828 !important;
 }
 
+.btn-termina {
+  background: transparent;
+  border: 1px solid #f59e0b;
+  color: #b45309;
+}
+.btn-termina:hover { background: #fef3c7; }
+
+.btn-disponibile {
+  background: transparent;
+  border: 1px solid #16a34a;
+  color: #15803d;
+}
+.btn-disponibile:hover { background: #f0fdf4; }
+
+.riga-terminata { opacity: 0.45; }
+.riga-terminata .td-nome { text-decoration: line-through; }
+
+.badge-terminato {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+  text-decoration: none !important;
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--testo-2);
