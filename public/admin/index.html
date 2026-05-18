@@ -89,22 +89,16 @@
 
       <div class="form-griglia">
 
-        <!-- Campi manuali -->
-        <div class="campo campo-full">
-          <label>Nome del vino *</label>
-          <input type="text" id="f-nome" required placeholder="es. Barolo Riserva">
+        <!-- Testo libero (solo in modalità nuovo) -->
+        <div class="campo campo-full" id="campo-testo-libero">
+          <label>Descrivi il vino</label>
+          <input type="text" id="f-testo-libero"
+            placeholder="es. Cascina Gavetta Barolo DOCG 2020"
+            autocomplete="off">
+          <p class="campo-hint">Scrivi quello che sai — cantina, nome, annata — e l'AI completa tutto il resto.</p>
         </div>
 
-        <div class="campo">
-          <label>Cantina</label>
-          <input type="text" id="f-cantina" placeholder="es. Gaja">
-        </div>
-
-        <div class="campo">
-          <label>Annata</label>
-          <input type="number" id="f-annata" placeholder="es. 2019" min="1900" max="2099">
-        </div>
-
+        <!-- Prezzi (sempre manuali) -->
         <div class="campo">
           <label>Prezzo bottiglia (€)</label>
           <input type="number" id="f-prezzo-bottiglia" placeholder="0.00" step="0.01" min="0">
@@ -123,8 +117,23 @@
           <p id="stato-ia" class="stato-ia"></p>
         </div>
 
-        <!-- Campi generati dall'AI (modificabili) -->
+        <!-- Sezione campi generati dall'AI (tutti modificabili) -->
         <div class="sezione-ai" id="sezione-ai">
+
+          <div class="campo campo-full-ai">
+            <label>Nome del vino <span class="label-hint">AI</span></label>
+            <input type="text" id="f-nome" placeholder="es. Barolo DOCG">
+          </div>
+
+          <div class="campo">
+            <label>Cantina <span class="label-hint">AI</span></label>
+            <input type="text" id="f-cantina" placeholder="es. Cascina Gavetta">
+          </div>
+
+          <div class="campo">
+            <label>Annata <span class="label-hint">AI</span></label>
+            <input type="number" id="f-annata" placeholder="es. 2020" min="1900" max="2099">
+          </div>
 
           <div class="campo">
             <label>Tipo <span class="label-hint">AI</span></label>
@@ -134,9 +143,9 @@
               <option value="Bianco">⚪ Bianco</option>
               <option value="Bollicine">🫧 Bollicine</option>
               <option value="Rosato">🌸 Rosato</option>
-            <option value="Dolce">🍯 Dolce</option>
-            <option value="Orange">🟠 Orange</option>
-            <option value="Fortificato">🏰 Fortificato</option>
+              <option value="Dolce">🍯 Dolce</option>
+              <option value="Orange">🟠 Orange</option>
+              <option value="Fortificato">🏰 Fortificato</option>
             </select>
           </div>
 

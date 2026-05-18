@@ -118,7 +118,11 @@ function apriFormNuovo() {
   document.getElementById('vino-id').value = '';
   document.getElementById('form-vino').reset();
   document.getElementById('stato-ia').textContent = '';
+  // Modalità nuovo: mostra il campo testo libero
+  document.getElementById('campo-testo-libero').style.display = '';
+  document.getElementById('f-testo-libero').value = '';
   apriPannello();
+  setTimeout(() => document.getElementById('f-testo-libero').focus(), 100);
 }
 
 function apriFormModifica(id) {
@@ -137,6 +141,8 @@ function apriFormModifica(id) {
   document.getElementById('f-prezzo-bottiglia').value = v.prezzo_bottiglia || '';
   document.getElementById('f-prezzo-mescita').value  = v.prezzo_mescita || '';
   document.getElementById('stato-ia').textContent    = '';
+  // Modalità modifica: nasconde il campo testo libero (già tutto compilato)
+  document.getElementById('campo-testo-libero').style.display = 'none';
   apriPannello();
 }
 
@@ -170,6 +176,11 @@ async function salvaVino(e) {
     prezzo_bottiglia: document.getElementById('f-prezzo-bottiglia').value || null,
     prezzo_mescita:   document.getElementById('f-prezzo-mescita').value || null,
   };
+
+  if (!dati.nome) {
+    mostraToast('Il nome del vino è obbligatorio. Usa il pulsante AI per generarlo.', 'errore');
+    return;
+  }
 
   btnSalva.disabled = true;
   btnSalva.textContent = 'Salvataggio...';
@@ -222,45 +233,57 @@ async function confermaElimina() {
   }
 }
 
-// ── Genera con AI (descrizione + nazione + regione) ───────────────────────────
+// ── Genera con AI ─────────────────────────────────────────────────────────────
 
 async function generaDescrizione() {
-  const nome = document.getElementById('f-nome').value.trim();
-  if (!nome) { mostraToast('Inserisci almeno il nome del vino.', 'errore'); return; }
+  // In modifica usa i campi già compilati come testo, in nuovo usa il testo libero
+  const id = document.getElementById('vino-id').value;
+  let testo;
+  if (id) {
+    // Modifica: ricostruisce testo dai campi esistenti
+    const nome    = document.getElementById('f-nome').value.trim();
+    const cantina = document.getElementById('f-cantina').value.trim();
+    const annata  = document.getElementById('f-annata').value.trim();
+    testo = [cantina, nome, annata].filter(Boolean).join(' ');
+  } else {
+    testo = document.getElementById('f-testo-libero').value.trim();
+  }
+
+  if (!testo) {
+    mostraToast('Scrivi almeno il nome del vino prima di generare.', 'errore');
+    return;
+  }
 
   const btn = document.getElementById('btn-genera');
   const statoEl = document.getElementById('stato-ia');
   btn.disabled = true;
-  btn.textContent = '✦ Generazione...';
+  btn.textContent = '✦ Analisi in corso...';
   statoEl.textContent = 'Claude sta analizzando il vino...';
 
   try {
     const res = await apiFetch('/api/admin/genera-descrizione', {
       method: 'POST',
-      body: JSON.stringify({
-        nome,
-        cantina: document.getElementById('f-cantina').value.trim(),
-        tipo:    document.getElementById('f-tipo').value,
-        annata:  document.getElementById('f-annata').value.trim(),
-        uve:     document.getElementById('f-uve').value.trim(),
-      })
+      body: JSON.stringify({ testo })
     });
     const dati = await res.json();
     if (!res.ok) throw new Error(dati.errore || 'Errore AI');
 
+    if (dati.nome)        document.getElementById('f-nome').value        = dati.nome;
+    if (dati.cantina)     document.getElementById('f-cantina').value     = dati.cantina;
+    if (dati.annata)      document.getElementById('f-annata').value      = dati.annata;
     if (dati.tipo)        document.getElementById('f-tipo').value        = dati.tipo;
     if (dati.uve)         document.getElementById('f-uve').value         = dati.uve;
     if (dati.descrizione) document.getElementById('f-descrizione').value = dati.descrizione;
     if (dati.nazione)     document.getElementById('f-nazione').value     = dati.nazione;
     if (dati.regione)     document.getElementById('f-regione').value     = dati.regione;
 
-    statoEl.textContent = 'Tipo, uve, descrizione, nazione e regione generati da Claude AI.';
+    statoEl.textContent = 'Tutti i campi generati da Claude AI — modificali se necessario.';
   } catch (err) {
     statoEl.textContent = '';
     mostraToast(err.message, 'errore');
   } finally {
     btn.disabled = false;
-    btn.textContent = '✦ Genera con AI (descrizione + origine)';
+    btn.textContent = '✦ Ricerca e genera con AI';
   }
 }
 

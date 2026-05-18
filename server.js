@@ -168,8 +168,8 @@ app.post('/api/admin/ripristina', requireAuth, (req, res) => {
 // ─── AI: genera descrizione + nazione + regione ───────────────────────────────
 
 app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
-  const { cantina, nome, annata, uve, tipo } = req.body;
-  if (!nome) return res.status(400).json({ errore: 'Il nome del vino è obbligatorio.' });
+  const { testo } = req.body;
+  if (!testo || !testo.trim()) return res.status(400).json({ errore: 'Inserisci almeno il nome del vino.' });
 
   try {
     const messaggio = await anthropic.messages.create({
@@ -177,22 +177,20 @@ app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
       max_tokens: 500,
       messages: [{
         role: 'user',
-        content: `Sei un sommelier esperto. Analizza questo vino e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
+        content: `Sei un sommelier esperto. Analizza il testo seguente che descrive un vino e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
 
 {
+  "nome": "nome del vino senza il nome della cantina (es. Barolo DOCG, Brunello di Montalcino Riserva)",
+  "cantina": "nome della cantina o produttore (es. Cascina Gavetta)",
+  "annata": "anno come stringa (es. 2020), oppure stringa vuota se non indicato",
   "tipo": "uno tra: Rosso, Bianco, Bollicine, Rosato, Dolce, Orange, Fortificato",
   "uve": "vitigni principali con percentuale se nota, es. Nebbiolo 100%",
   "descrizione": "descrizione sensoriale elegante max 80 parole, evoca profumi sapori e abbinamenti",
-  "nazione": "paese di origine dedotto dal nome/cantina",
-  "regione": "regione vinicola di origine dedotta dal contesto"
+  "nazione": "paese di origine",
+  "regione": "regione vinicola di origine"
 }
 
-Dati del vino (compila i campi mancanti basandoti sulle tue conoscenze):
-- Nome: ${nome}
-- Cantina: ${cantina || 'N/D'}
-- Annata: ${annata || 'N/D'}
-- Tipo già indicato: ${tipo || 'da dedurre'}
-- Uve già indicate: ${uve || 'da dedurre'}`
+Testo: "${testo.trim()}"`
       }]
     });
 

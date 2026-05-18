@@ -375,6 +375,13 @@ body {
   font-style: italic;
 }
 
+.campo-hint {
+  font-size: 0.72rem;
+  color: var(--testo-2);
+  margin-top: 4px;
+  font-style: italic;
+}
+
 /* ── Pannello form (slide-in da destra) ───────────────────────────────────── */
 .overlay-admin {
   position: fixed;
