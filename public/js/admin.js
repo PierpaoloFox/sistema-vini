@@ -41,26 +41,8 @@ async function mostraApp() {
   document.getElementById('schermata-login').classList.add('nascosto');
   document.getElementById('app').classList.remove('nascosto');
   await caricaVini();
-  verificaStorage();
 }
 
-async function verificaStorage() {
-  try {
-    const res = await apiFetch('/api/admin/storage-info');
-    const info = await res.json();
-    const banner = document.getElementById('banner-storage');
-    if (info.modalita === 'postgres') {
-      banner.className = 'banner-storage banner-ok';
-      banner.innerHTML = `✓ Dati salvati su <strong>PostgreSQL (Railway)</strong> — al sicuro da ogni redeploy`;
-    } else if (info.modalita === 'github') {
-      banner.className = 'banner-storage banner-ok';
-      banner.innerHTML = `✓ Dati salvati su <strong>GitHub</strong> — al sicuro da ogni redeploy`;
-    } else {
-      banner.className = 'banner-storage banner-warn';
-      banner.innerHTML = `⚠️ <strong>Attenzione:</strong> i dati vengono salvati solo sul disco locale — si perdono ad ogni redeploy.`;
-    }
-  } catch {}
-}
 
 // ── Fetch autenticata ─────────────────────────────────────────────────────────
 
