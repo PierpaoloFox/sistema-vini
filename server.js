@@ -10,18 +10,17 @@ try {
   config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
 } catch {}
 
-// Le variabili d'ambiente hanno priorità (usate in produzione/cloud)
 if (process.env.ANTHROPIC_API_KEY) config.anthropic_api_key = process.env.ANTHROPIC_API_KEY;
 if (process.env.ADMIN_PASSWORD)    config.password           = process.env.ADMIN_PASSWORD;
 if (process.env.NOME_RISTORANTE)   config.nome_ristorante    = process.env.NOME_RISTORANTE;
 if (process.env.PORT)              config.porta              = process.env.PORT;
 
 if (!config.anthropic_api_key) {
-  console.error('Errore: chiave API Anthropic mancante. Impostala in config.json o nella variabile ANTHROPIC_API_KEY.');
+  console.error('Errore: chiave API Anthropic mancante.');
   process.exit(1);
 }
 if (!config.password) {
-  console.error('Errore: password admin mancante. Impostala in config.json o nella variabile ADMIN_PASSWORD.');
+  console.error('Errore: password admin mancante.');
   process.exit(1);
 }
 
@@ -29,14 +28,12 @@ const app = express();
 const PORT = config.porta || 3000;
 const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'vini.json');
 
-// Assicura che la cartella data esista
+// Assicura che le cartelle necessarie esistano
 const dataDir = path.dirname(DATA_FILE);
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]', 'utf8');
 
 const anthropic = new Anthropic({ apiKey: config.anthropic_api_key });
-
-// Sessioni in memoria (si resettano al riavvio del server)
 const sessioni = new Set();
 
 app.use(express.json());
@@ -45,11 +42,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ─── Utility ────────────────────────────────────────────────────────────────
 
 function caricaVini() {
-  try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
+  catch { return []; }
 }
 
 function salvaVini(vini) {
@@ -84,9 +78,7 @@ app.post('/api/logout', requireAuth, (req, res) => {
 
 // ─── API pubblica ─────────────────────────────────────────────────────────────
 
-app.get('/api/vini', (req, res) => {
-  res.json(caricaVini());
-});
+app.get('/api/vini', (req, res) => res.json(caricaVini()));
 
 app.get('/api/config-pubblica', (req, res) => {
   res.json({ nome_ristorante: config.nome_ristorante });
@@ -94,23 +86,23 @@ app.get('/api/config-pubblica', (req, res) => {
 
 // ─── API admin (protette) ─────────────────────────────────────────────────────
 
-app.get('/api/admin/vini', requireAuth, (req, res) => {
-  res.json(caricaVini());
-});
+app.get('/api/admin/vini', requireAuth, (req, res) => res.json(caricaVini()));
 
 app.post('/api/admin/vini', requireAuth, (req, res) => {
   const vini = caricaVini();
   const vino = {
     id: Date.now().toString(),
-    cantina: req.body.cantina || '',
-    nome: req.body.nome || '',
-    nazione: req.body.nazione || '',
-    regione: req.body.regione || '',
-    annata: req.body.annata || '',
-    uve: req.body.uve || '',
-    descrizione: req.body.descrizione || '',
+    tipo:             req.body.tipo             || '',
+    cantina:          req.body.cantina          || '',
+    nome:             req.body.nome             || '',
+    annata:           req.body.annata           || '',
+    uve:              req.body.uve              || '',
+    descrizione:      req.body.descrizione      || '',
+    nazione:          req.body.nazione          || '',
+    regione:          req.body.regione          || '',
     prezzo_bottiglia: req.body.prezzo_bottiglia || null,
-    prezzo_mescita: req.body.prezzo_mescita || null,
+    prezzo_mescita:   req.body.prezzo_mescita   || null,
+    foto_url:         req.body.foto_url         || '',
     creato_il: new Date().toISOString()
   };
   vini.push(vino);
@@ -124,15 +116,17 @@ app.put('/api/admin/vini/:id', requireAuth, (req, res) => {
   if (idx === -1) return res.status(404).json({ errore: 'Vino non trovato.' });
   vini[idx] = {
     ...vini[idx],
-    cantina: req.body.cantina ?? vini[idx].cantina,
-    nome: req.body.nome ?? vini[idx].nome,
-    nazione: req.body.nazione ?? vini[idx].nazione,
-    regione: req.body.regione ?? vini[idx].regione,
-    annata: req.body.annata ?? vini[idx].annata,
-    uve: req.body.uve ?? vini[idx].uve,
-    descrizione: req.body.descrizione ?? vini[idx].descrizione,
+    tipo:             req.body.tipo             ?? vini[idx].tipo,
+    cantina:          req.body.cantina          ?? vini[idx].cantina,
+    nome:             req.body.nome             ?? vini[idx].nome,
+    annata:           req.body.annata           ?? vini[idx].annata,
+    uve:              req.body.uve              ?? vini[idx].uve,
+    descrizione:      req.body.descrizione      ?? vini[idx].descrizione,
+    nazione:          req.body.nazione          ?? vini[idx].nazione,
+    regione:          req.body.regione          ?? vini[idx].regione,
     prezzo_bottiglia: req.body.prezzo_bottiglia ?? vini[idx].prezzo_bottiglia,
-    prezzo_mescita: req.body.prezzo_mescita ?? vini[idx].prezzo_mescita,
+    prezzo_mescita:   req.body.prezzo_mescita   ?? vini[idx].prezzo_mescita,
+    foto_url:         req.body.foto_url         ?? vini[idx].foto_url,
     modificato_il: new Date().toISOString()
   };
   salvaVini(vini);
@@ -142,44 +136,82 @@ app.put('/api/admin/vini/:id', requireAuth, (req, res) => {
 app.delete('/api/admin/vini/:id', requireAuth, (req, res) => {
   const vini = caricaVini();
   const nuoviVini = vini.filter(v => v.id !== req.params.id);
-  if (nuoviVini.length === vini.length) {
+  if (nuoviVini.length === vini.length)
     return res.status(404).json({ errore: 'Vino non trovato.' });
-  }
   salvaVini(nuoviVini);
   res.json({ ok: true });
 });
 
-// ─── Generazione descrizione AI ───────────────────────────────────────────────
+// ─── AI: genera descrizione + nazione + regione ───────────────────────────────
 
 app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
-  const { cantina, nome, nazione, regione, annata, uve } = req.body;
-
-  if (!nome) {
-    return res.status(400).json({ errore: 'Il nome del vino è obbligatorio.' });
-  }
+  const { cantina, nome, annata, uve, tipo } = req.body;
+  if (!nome) return res.status(400).json({ errore: 'Il nome del vino è obbligatorio.' });
 
   try {
     const messaggio = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 300,
+      max_tokens: 400,
       messages: [{
         role: 'user',
-        content: `Sei un sommelier esperto. Scrivi una descrizione elegante e sensoriale per la carta dei vini di questo vino (massimo 80 parole, solo il testo della descrizione, niente titoli o premesse):
+        content: `Sei un sommelier esperto. Analizza questo vino e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
 
-Cantina: ${cantina || 'N/D'}
-Nome vino: ${nome}
-Nazione: ${nazione || 'N/D'}
-Regione: ${regione || 'N/D'}
-Annata: ${annata || 'N/D'}
-Uve: ${uve || 'N/D'}
+{
+  "descrizione": "descrizione sensoriale elegante max 80 parole, evoca profumi sapori e abbinamenti",
+  "nazione": "paese di origine dedotto dal nome/cantina/uve",
+  "regione": "regione vinicola di origine dedotta dal contesto"
+}
 
-La descrizione deve evocare profumi, sapori e abbinamenti. Tono professionale ma accessibile.`
+Dati del vino:
+- Nome: ${nome}
+- Cantina: ${cantina || 'N/D'}
+- Tipo: ${tipo || 'N/D'}
+- Annata: ${annata || 'N/D'}
+- Uve: ${uve || 'N/D'}`
       }]
     });
-    res.json({ descrizione: messaggio.content[0].text.trim() });
+
+    const testo = messaggio.content[0].text.trim();
+    // Estrae il JSON anche se ci fosse qualcosa intorno
+    const match = testo.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Risposta AI non valida');
+    const dati = JSON.parse(match[0]);
+    res.json(dati);
   } catch (e) {
     console.error('Errore Claude API:', e.message);
-    res.status(500).json({ errore: 'Errore nella generazione della descrizione. Controlla la chiave API.' });
+    res.status(500).json({ errore: 'Errore nella generazione. Controlla la chiave API.' });
+  }
+});
+
+// ─── Ricerca immagine bottiglia (Wikipedia, no API key) ───────────────────────
+
+app.post('/api/admin/cerca-immagine', requireAuth, async (req, res) => {
+  const { nome, cantina } = req.body;
+  const query = [cantina, nome].filter(Boolean).join(' ');
+
+  try {
+    // 1) Cerca la pagina Wikipedia più pertinente
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=3&origin=*`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json();
+    const risultati = searchData?.query?.search || [];
+
+    for (const risultato of risultati) {
+      // 2) Per ogni risultato cerca l'immagine principale della pagina
+      const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(risultato.title)}&prop=pageimages&format=json&pithumbsize=500&origin=*`;
+      const imgRes = await fetch(imgUrl);
+      const imgData = await imgRes.json();
+      const pages = imgData?.query?.pages || {};
+      const page = Object.values(pages)[0];
+      if (page?.thumbnail?.source) {
+        return res.json({ foto_url: page.thumbnail.source, fonte: 'Wikipedia' });
+      }
+    }
+    // Nessuna immagine trovata
+    res.json({ foto_url: null });
+  } catch (e) {
+    console.error('Errore ricerca immagine:', e.message);
+    res.json({ foto_url: null });
   }
 });
 
