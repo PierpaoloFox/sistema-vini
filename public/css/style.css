@@ -343,6 +343,36 @@ header {
   font-family: 'Montserrat', sans-serif;
 }
 
+/* ── Intestazioni sezione (vista lista) ───────────────────────────────────── */
+.sezione-tipo {
+  display: contents; /* le card restano nel flusso flex del catalogo */
+}
+
+.sezione-tipo-header {
+  width: 100%;
+  padding: 20px 0 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  margin-bottom: 4px;
+}
+
+/* Prima sezione: niente padding-top */
+.sezione-tipo:first-child .sezione-tipo-header { padding-top: 4px; }
+
+.sezione-tipo-badge {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  padding: 4px 16px 4px 0;
+}
+
+.sezione-tipo-badge.bollicine { color: #d4b8ff; }
+.sezione-tipo-badge.bianco    { color: #ffe8a0; }
+.sezione-tipo-badge.rosso     { color: #ffaaaa; }
+.sezione-tipo-badge.orange    { color: #ffcc99; }
+.sezione-tipo-badge.altro     { color: var(--testo-secondario); }
+
 /* ── VISTA LISTA ──────────────────────────────────────────────────────────── */
 #catalogo.vista-lista {
   max-width: 1000px;
