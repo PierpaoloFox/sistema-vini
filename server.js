@@ -183,36 +183,71 @@ Dati del vino:
   }
 });
 
-// ─── Ricerca immagine bottiglia (Wikipedia, no API key) ───────────────────────
+// ─── Ricerca immagine (WineNews.it → fallback Wikipedia) ─────────────────────
 
 app.post('/api/admin/cerca-immagine', requireAuth, async (req, res) => {
   const { nome, cantina } = req.body;
   const query = [cantina, nome].filter(Boolean).join(' ');
 
-  try {
-    // 1) Cerca la pagina Wikipedia più pertinente
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=3&origin=*`;
-    const searchRes = await fetch(searchUrl);
-    const searchData = await searchRes.json();
-    const risultati = searchData?.query?.search || [];
+  const browserHeaders = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'it-IT,it;q=0.9,en;q=0.8',
+  };
 
-    for (const risultato of risultati) {
-      // 2) Per ogni risultato cerca l'immagine principale della pagina
-      const imgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(risultato.title)}&prop=pageimages&format=json&pithumbsize=500&origin=*`;
-      const imgRes = await fetch(imgUrl);
-      const imgData = await imgRes.json();
-      const pages = imgData?.query?.pages || {};
-      const page = Object.values(pages)[0];
-      if (page?.thumbnail?.source) {
-        return res.json({ foto_url: page.thumbnail.source, fonte: 'Wikipedia' });
+  // ── 1. WineNews.it ────────────────────────────────────────────────────────
+  try {
+    const searchUrl = `https://winenews.it/?s=${encodeURIComponent(query)}`;
+    const searchRes = await fetch(searchUrl, { headers: browserHeaders, signal: AbortSignal.timeout(8000) });
+
+    if (searchRes.ok) {
+      const html = await searchRes.text();
+
+      // og:image della pagina di risultati (spesso è l'immagine del primo articolo)
+      const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                   || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+
+      if (ogMatch?.[1] && !ogMatch[1].toLowerCase().includes('logo')) {
+        return res.json({ foto_url: ogMatch[1], fonte: 'WineNews.it' });
       }
+
+      // Primo link articolo → prendi la sua og:image
+      const linkMatch = html.match(/href=["'](https:\/\/winenews\.it\/(?!(?:categoria|tag|autore|page))[^"'#?]+\/)["']/i);
+      if (linkMatch) {
+        try {
+          const artRes = await fetch(linkMatch[1], { headers: browserHeaders, signal: AbortSignal.timeout(6000) });
+          if (artRes.ok) {
+            const artHtml = await artRes.text();
+            const artOg = artHtml.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+                       || artHtml.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+            if (artOg?.[1]) return res.json({ foto_url: artOg[1], fonte: 'WineNews.it' });
+          }
+        } catch {}
+      }
+
+      // Prima immagine caricata su WordPress nella pagina
+      const wpImg = html.match(/src=["'](https:\/\/winenews\.it\/wp-content\/uploads\/[^"']+\.(?:jpg|jpeg|png|webp))["']/i);
+      if (wpImg) return res.json({ foto_url: wpImg[1], fonte: 'WineNews.it' });
     }
-    // Nessuna immagine trovata
-    res.json({ foto_url: null });
   } catch (e) {
-    console.error('Errore ricerca immagine:', e.message);
-    res.json({ foto_url: null });
+    console.log('WineNews.it non raggiungibile:', e.message);
   }
+
+  // ── 2. Fallback: Wikipedia ────────────────────────────────────────────────
+  try {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&srlimit=3&origin=*`;
+    const searchData = await (await fetch(searchUrl, { signal: AbortSignal.timeout(6000) })).json();
+    for (const r of (searchData?.query?.search || [])) {
+      const imgData = await (await fetch(
+        `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(r.title)}&prop=pageimages&format=json&pithumbsize=500&origin=*`,
+        { signal: AbortSignal.timeout(5000) }
+      )).json();
+      const page = Object.values(imgData?.query?.pages || {})[0];
+      if (page?.thumbnail?.source) return res.json({ foto_url: page.thumbnail.source, fonte: 'Wikipedia' });
+    }
+  } catch {}
+
+  res.json({ foto_url: null });
 });
 
 // ─── Avvio server ─────────────────────────────────────────────────────────────
