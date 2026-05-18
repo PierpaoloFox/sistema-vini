@@ -150,6 +150,21 @@ app.get('/api/admin/backup', requireAuth, (req, res) => {
   res.send(JSON.stringify(vini, null, 2));
 });
 
+app.post('/api/admin/ripristina', requireAuth, (req, res) => {
+  const { vini } = req.body;
+  if (!Array.isArray(vini)) {
+    return res.status(400).json({ errore: 'File non valido: deve contenere un array di vini.' });
+  }
+  // Backup automatico prima di sovrascrivere
+  const esistenti = caricaVini();
+  const dataOra = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupPath = path.join(path.dirname(DATA_FILE), `backup-pre-import-${dataOra}.json`);
+  try { fs.writeFileSync(backupPath, JSON.stringify(esistenti, null, 2), 'utf8'); } catch {}
+
+  salvaVini(vini);
+  res.json({ ok: true, importati: vini.length });
+});
+
 // ─── AI: genera descrizione + nazione + regione ───────────────────────────────
 
 app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {

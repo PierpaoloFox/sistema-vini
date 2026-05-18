@@ -264,7 +264,46 @@ async function generaDescrizione() {
   }
 }
 
-// ── Backup ───────────────────────────────────────────────────────────────────
+// ── Backup / Ripristino ───────────────────────────────────────────────────────
+
+async function importaBackup(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = ''; // reset per permettere di reimportare lo stesso file
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    let vini;
+    try {
+      const contenuto = JSON.parse(e.target.result);
+      vini = Array.isArray(contenuto) ? contenuto : null;
+    } catch {
+      mostraToast('File non valido: deve essere un JSON esportato da questo sistema.', 'errore');
+      return;
+    }
+
+    if (!vini) {
+      mostraToast('File non valido: struttura non riconosciuta.', 'errore');
+      return;
+    }
+
+    if (!confirm(`Stai per importare ${vini.length} vini.\nI vini attuali verranno sostituiti (un backup automatico verrà salvato sul server).\n\nContinuare?`)) return;
+
+    try {
+      const res = await apiFetch('/api/admin/ripristina', {
+        method: 'POST',
+        body: JSON.stringify({ vini })
+      });
+      const dati = await res.json();
+      if (!res.ok) throw new Error(dati.errore);
+      await caricaVini();
+      mostraToast(`${dati.importati} vini importati con successo.`, 'successo');
+    } catch (err) {
+      mostraToast('Errore durante l\'importazione: ' + err.message, 'errore');
+    }
+  };
+  reader.readAsText(file);
+}
 
 async function scaricaBackup() {
   const a = document.createElement('a');
