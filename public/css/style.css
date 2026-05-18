@@ -159,7 +159,7 @@ header {
 }
 
 /* toggle vista */
-.vista-toggle { display: flex; gap: 4px; margin-left: 4px; }
+.vista-toggle { display: flex; gap: 4px; flex-shrink: 0; }
 
 .vista-btn {
   background: transparent;
@@ -179,12 +179,19 @@ header {
 .vista-btn:hover { color: var(--oro); border-color: var(--oro); }
 .vista-btn.attivo { background: var(--oro); color: #3a0a10; border-color: var(--oro); }
 
-/* ── Ricerca ──────────────────────────────────────────────────────────────── */
+/* ── Ricerca + toggle ─────────────────────────────────────────────────────── */
 .ricerca-bar {
-  position: relative;
-  padding: 16px 24px;
-  max-width: 600px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  max-width: 1200px;
   margin: 0 auto;
+}
+
+.ricerca-inner {
+  position: relative;
+  flex: 1;
 }
 
 #ricerca {
@@ -192,7 +199,7 @@ header {
   background: rgba(0,0,0,0.2);
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 8px;
-  padding: 12px 40px 12px 16px;
+  padding: 11px 40px 11px 16px;
   color: var(--testo);
   font-family: 'Montserrat', sans-serif;
   font-size: 0.85rem;
@@ -206,7 +213,7 @@ header {
 
 .ricerca-icon {
   position: absolute;
-  right: 40px;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--testo-secondario);

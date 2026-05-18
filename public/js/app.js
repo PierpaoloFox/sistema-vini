@@ -66,6 +66,13 @@ function costruisciFiltriNazioni() {
   ).join('');
 }
 
+function resetFiltroNazione(el) {
+  filtroNazione = 'tutti';
+  document.querySelectorAll('[data-filtro-nazione]').forEach(b => b.classList.remove('attivo'));
+  el.classList.add('attivo');
+  renderCatalogo();
+}
+
 function setFiltroTipo(valore, el) {
   filtroTipo = valore;
   document.querySelectorAll('[data-filtro-tipo]').forEach(b => b.classList.remove('attivo'));

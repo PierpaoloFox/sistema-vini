@@ -23,31 +23,24 @@
     </div>
   </header>
 
-  <!-- Filtri tipo + nazione + toggle vista -->
+  <!-- Filtri nazioni -->
   <nav class="filtri-bar">
     <div class="filtri-scroll">
-      <button class="filtro-btn attivo" data-filtro-tipo="tutti" onclick="setFiltroTipo('tutti', this)">Tutti</button>
-      <span class="filtro-tipo-btn rosso"   data-filtro-tipo="rosso"     onclick="setFiltroTipo('rosso', this)">● Rosso</span>
-      <span class="filtro-tipo-btn bianco"  data-filtro-tipo="bianco"    onclick="setFiltroTipo('bianco', this)">● Bianco</span>
-      <span class="filtro-tipo-btn bollicine" data-filtro-tipo="bollicine" onclick="setFiltroTipo('bollicine', this)">● Bollicine</span>
-      <span class="filtro-tipo-btn rosato"  data-filtro-tipo="rosato"    onclick="setFiltroTipo('rosato', this)">● Rosato</span>
-      <span class="filtro-tipo-btn dolce"   data-filtro-tipo="dolce"     onclick="setFiltroTipo('dolce', this)">● Dolce</span>
-      <span class="filtro-tipo-btn orange"       data-filtro-tipo="orange"       onclick="setFiltroTipo('orange', this)">● Orange</span>
-      <span class="filtro-tipo-btn fortificato" data-filtro-tipo="fortificato"  onclick="setFiltroTipo('fortificato', this)">● Fortificato</span>
-      <div class="separatore-filtri"></div>
+      <button class="filtro-btn attivo" data-filtro-nazione="tutti" onclick="resetFiltroNazione(this)">Tutti</button>
       <div id="filtri-nazioni" class="filtri-gruppo"></div>
-      <div class="separatore-filtri"></div>
-      <div class="vista-toggle">
-        <button id="btn-griglia" class="vista-btn attivo" onclick="setVista('griglia')" title="Vista griglia">⊞</button>
-        <button id="btn-lista"   class="vista-btn"        onclick="setVista('lista')"   title="Vista lista">☰</button>
-      </div>
     </div>
   </nav>
 
-  <!-- Ricerca -->
+  <!-- Ricerca + toggle vista -->
   <div class="ricerca-bar">
-    <input type="text" id="ricerca" placeholder="Cerca per nome, cantina, uva..." autocomplete="off">
-    <span class="ricerca-icon">&#128269;</span>
+    <div class="ricerca-inner">
+      <input type="text" id="ricerca" placeholder="Cerca per nome, cantina, uva..." autocomplete="off">
+      <span class="ricerca-icon">&#128269;</span>
+    </div>
+    <div class="vista-toggle">
+      <button id="btn-griglia" class="vista-btn" onclick="setVista('griglia')" title="Vista griglia">⊞</button>
+      <button id="btn-lista"   class="vista-btn attivo" onclick="setVista('lista')"   title="Vista lista">☰</button>
+    </div>
   </div>
 
   <!-- Lista vini -->
