@@ -4,65 +4,112 @@ const path = require('path');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 
-// Carica configurazione (file locale o variabili d'ambiente per il cloud)
+// ─── Configurazione ───────────────────────────────────────────────────────────
+
 let config = {};
-try {
-  config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-} catch {}
+try { config = JSON.parse(fs.readFileSync('config.json', 'utf8')); } catch {}
 
 if (process.env.ANTHROPIC_API_KEY) config.anthropic_api_key = process.env.ANTHROPIC_API_KEY;
 if (process.env.ADMIN_PASSWORD)    config.password           = process.env.ADMIN_PASSWORD;
 if (process.env.NOME_RISTORANTE)   config.nome_ristorante    = process.env.NOME_RISTORANTE;
 if (process.env.PORT)              config.porta              = process.env.PORT;
 
-if (!config.anthropic_api_key) {
-  console.error('Errore: chiave API Anthropic mancante.');
-  process.exit(1);
-}
-if (!config.password) {
-  console.error('Errore: password admin mancante.');
-  process.exit(1);
-}
+if (!config.anthropic_api_key) { console.error('Errore: ANTHROPIC_API_KEY mancante.'); process.exit(1); }
+if (!config.password)          { console.error('Errore: ADMIN_PASSWORD mancante.');    process.exit(1); }
 
-const app = express();
-const PORT = config.porta || 3000;
-const DATA_FILE = process.env.DATA_FILE || path.join(__dirname, 'data', 'vini.json');
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPO  = process.env.GITHUB_REPO;   // es. 'PierpaoloFox/sistema-vini'
+const GITHUB_FILE  = 'data/vini.json';
+const DATA_FILE    = process.env.DATA_FILE || path.join(__dirname, 'data', 'vini.json');
 
-// Assicura che le cartelle necessarie esistano
+// Assicura cartella locale (usata in sviluppo o come fallback)
 const dataDir = path.dirname(DATA_FILE);
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 if (!fs.existsSync(DATA_FILE)) fs.writeFileSync(DATA_FILE, '[]', 'utf8');
 
+const app = express();
+const PORT = config.porta || 3000;
 const anthropic = new Anthropic({ apiKey: config.anthropic_api_key });
 const sessioni = new Set();
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Utility ────────────────────────────────────────────────────────────────
+// ─── Storage: GitHub API (produzione) o file locale (sviluppo) ───────────────
 
-function caricaVini() {
-  try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
-  catch { return []; }
+let cacheVini = null;
+let cacheSha  = null;
+let cacheTime = 0;
+const CACHE_TTL = 10000; // 10 secondi
+
+async function caricaVini() {
+  if (!GITHUB_TOKEN || !GITHUB_REPO) {
+    try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); } catch { return []; }
+  }
+  if (cacheVini && Date.now() - cacheTime < CACHE_TTL) return cacheVini;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!res.ok) return cacheVini || [];
+    const data = await res.json();
+    const testo = Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+    cacheVini = JSON.parse(testo);
+    cacheSha  = data.sha;
+    cacheTime = Date.now();
+    return cacheVini;
+  } catch (e) {
+    console.error('Errore lettura GitHub:', e.message);
+    return cacheVini || [];
+  }
 }
 
-function salvaVini(vini) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(vini, null, 2), 'utf8');
+async function salvaVini(vini) {
+  if (!GITHUB_TOKEN || !GITHUB_REPO) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(vini, null, 2), 'utf8');
+    return;
+  }
+  // Recupera SHA aggiornato se necessario
+  if (!cacheSha) {
+    const r = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+      headers: { 'Authorization': `Bearer ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (r.ok) { const d = await r.json(); cacheSha = d.sha; }
+  }
+  const contenuto = Buffer.from(JSON.stringify(vini, null, 2), 'utf8').toString('base64');
+  const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github+json'
+    },
+    body: JSON.stringify({
+      message: `Vini aggiornati ${new Date().toISOString().slice(0,16).replace('T',' ')}`,
+      content: contenuto,
+      ...(cacheSha && { sha: cacheSha })
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`Errore salvataggio GitHub: ${err.message}`);
+  }
+  const data = await res.json();
+  cacheSha  = data.content.sha;
+  cacheVini = vini;
+  cacheTime = Date.now();
 }
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
 
 function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'];
-  if (!token || !sessioni.has(token)) {
-    return res.status(401).json({ errore: 'Non autorizzato. Effettua il login.' });
-  }
+  if (!token || !sessioni.has(token)) return res.status(401).json({ errore: 'Non autorizzato.' });
   next();
 }
 
-// ─── Auth ────────────────────────────────────────────────────────────────────
-
 app.post('/api/login', (req, res) => {
-  const { password } = req.body;
-  if (password === config.password) {
+  if (req.body.password === config.password) {
     const token = crypto.randomBytes(32).toString('hex');
     sessioni.add(token);
     res.json({ token });
@@ -78,18 +125,22 @@ app.post('/api/logout', requireAuth, (req, res) => {
 
 // ─── API pubblica ─────────────────────────────────────────────────────────────
 
-app.get('/api/vini', (req, res) => res.json(caricaVini()));
+app.get('/api/vini', async (req, res) => {
+  res.json(await caricaVini());
+});
 
 app.get('/api/config-pubblica', (req, res) => {
   res.json({ nome_ristorante: config.nome_ristorante });
 });
 
-// ─── API admin (protette) ─────────────────────────────────────────────────────
+// ─── API admin ────────────────────────────────────────────────────────────────
 
-app.get('/api/admin/vini', requireAuth, (req, res) => res.json(caricaVini()));
+app.get('/api/admin/vini', requireAuth, async (req, res) => {
+  res.json(await caricaVini());
+});
 
-app.post('/api/admin/vini', requireAuth, (req, res) => {
-  const vini = caricaVini();
+app.post('/api/admin/vini', requireAuth, async (req, res) => {
+  const vini = await caricaVini();
   const vino = {
     id: Date.now().toString(),
     tipo:             req.body.tipo             || '',
@@ -105,12 +156,12 @@ app.post('/api/admin/vini', requireAuth, (req, res) => {
     creato_il: new Date().toISOString()
   };
   vini.push(vino);
-  salvaVini(vini);
+  await salvaVini(vini);
   res.status(201).json(vino);
 });
 
-app.put('/api/admin/vini/:id', requireAuth, (req, res) => {
-  const vini = caricaVini();
+app.put('/api/admin/vini/:id', requireAuth, async (req, res) => {
+  const vini = await caricaVini();
   const idx = vini.findIndex(v => v.id === req.params.id);
   if (idx === -1) return res.status(404).json({ errore: 'Vino non trovato.' });
   vini[idx] = {
@@ -127,50 +178,40 @@ app.put('/api/admin/vini/:id', requireAuth, (req, res) => {
     prezzo_mescita:   req.body.prezzo_mescita   ?? vini[idx].prezzo_mescita,
     modificato_il: new Date().toISOString()
   };
-  salvaVini(vini);
+  await salvaVini(vini);
   res.json(vini[idx]);
 });
 
-app.delete('/api/admin/vini/:id', requireAuth, (req, res) => {
-  const vini = caricaVini();
-  const nuoviVini = vini.filter(v => v.id !== req.params.id);
-  if (nuoviVini.length === vini.length)
-    return res.status(404).json({ errore: 'Vino non trovato.' });
-  salvaVini(nuoviVini);
+app.delete('/api/admin/vini/:id', requireAuth, async (req, res) => {
+  const vini = await caricaVini();
+  const nuovi = vini.filter(v => v.id !== req.params.id);
+  if (nuovi.length === vini.length) return res.status(404).json({ errore: 'Vino non trovato.' });
+  await salvaVini(nuovi);
   res.json({ ok: true });
 });
 
 // ─── Backup ───────────────────────────────────────────────────────────────────
 
-app.get('/api/admin/backup', requireAuth, (req, res) => {
-  const vini = caricaVini();
+app.get('/api/admin/backup', requireAuth, async (req, res) => {
+  const vini = await caricaVini();
   const data = new Date().toISOString().slice(0, 10);
   res.setHeader('Content-Disposition', `attachment; filename="vini-backup-${data}.json"`);
   res.setHeader('Content-Type', 'application/json');
   res.send(JSON.stringify(vini, null, 2));
 });
 
-app.post('/api/admin/ripristina', requireAuth, (req, res) => {
+app.post('/api/admin/ripristina', requireAuth, async (req, res) => {
   const { vini } = req.body;
-  if (!Array.isArray(vini)) {
-    return res.status(400).json({ errore: 'File non valido: deve contenere un array di vini.' });
-  }
-  // Backup automatico prima di sovrascrivere
-  const esistenti = caricaVini();
-  const dataOra = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupPath = path.join(path.dirname(DATA_FILE), `backup-pre-import-${dataOra}.json`);
-  try { fs.writeFileSync(backupPath, JSON.stringify(esistenti, null, 2), 'utf8'); } catch {}
-
-  salvaVini(vini);
+  if (!Array.isArray(vini)) return res.status(400).json({ errore: 'File non valido.' });
+  await salvaVini(vini);
   res.json({ ok: true, importati: vini.length });
 });
 
-// ─── AI: genera descrizione + nazione + regione ───────────────────────────────
+// ─── AI ───────────────────────────────────────────────────────────────────────
 
 app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
   const { testo } = req.body;
-  if (!testo || !testo.trim()) return res.status(400).json({ errore: 'Inserisci almeno il nome del vino.' });
-
+  if (!testo?.trim()) return res.status(400).json({ errore: 'Inserisci almeno il nome del vino.' });
   try {
     const messaggio = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -193,24 +234,20 @@ app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
 Testo: "${testo.trim()}"`
       }]
     });
-
-    const testo = messaggio.content[0].text.trim();
-    // Estrae il JSON anche se ci fosse qualcosa intorno
-    const match = testo.match(/\{[\s\S]*\}/);
+    const match = messaggio.content[0].text.trim().match(/\{[\s\S]*\}/);
     if (!match) throw new Error('Risposta AI non valida');
-    const dati = JSON.parse(match[0]);
-    res.json(dati);
+    res.json(JSON.parse(match[0]));
   } catch (e) {
-    console.error('Errore Claude API:', e.message);
-    res.status(500).json({ errore: 'Errore nella generazione. Controlla la chiave API.' });
+    console.error('Errore Claude:', e.message);
+    res.status(500).json({ errore: 'Errore AI. Controlla la chiave API.' });
   }
 });
 
-
-// ─── Avvio server ─────────────────────────────────────────────────────────────
+// ─── Avvio ────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
-  console.log(`\n🍷  Sistema Vini avviato`);
-  console.log(`   Catalogo clienti → http://localhost:${PORT}`);
-  console.log(`   Admin            → http://localhost:${PORT}/admin\n`);
+  const storage = (GITHUB_TOKEN && GITHUB_REPO) ? `GitHub (${GITHUB_REPO})` : 'file locale';
+  console.log(`\n🍷  Sistema Vini avviato — storage: ${storage}`);
+  console.log(`   Catalogo → http://localhost:${PORT}`);
+  console.log(`   Admin    → http://localhost:${PORT}/admin\n`);
 });
