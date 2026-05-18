@@ -368,21 +368,31 @@ async function scaricaBackup() {
 // ── Stampa carta vini ─────────────────────────────────────────────────────────
 
 async function stampaCarta() {
-  const viniDisponibili = tuttiVini.filter(v => !v.terminato);
-  if (viniDisponibili.length === 0) {
-    mostraToast('Nessun vino disponibile da stampare.', 'errore');
+  await _apriStampa({ solo_mescita: false });
+}
+
+async function stampaMescita() {
+  await _apriStampa({ solo_mescita: true });
+}
+
+async function _apriStampa({ solo_mescita }) {
+  let vini = tuttiVini.filter(v => !v.terminato);
+  if (solo_mescita) vini = vini.filter(v => v.prezzo_mescita);
+
+  if (vini.length === 0) {
+    mostraToast(solo_mescita ? 'Nessun vino al calice da stampare.' : 'Nessun vino disponibile da stampare.', 'errore');
     return;
   }
 
   let nomeRistorante = 'Carta dei Vini';
-  let sottotitolo    = '';
   try {
     const r = await fetch('/api/config-pubblica');
     const cfg = await r.json();
     if (cfg.nome_ristorante) nomeRistorante = cfg.nome_ristorante;
   } catch {}
 
-  const vini = viniDisponibili;
+  const titoloCarta = solo_mescita ? 'Carta dei Vini al Calice' : 'Carta dei Vini';
+
   const ORDINE = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange', 'Fortificato'];
   const LABEL  = {
     Bollicine:  'Bollicine & Spumanti',
@@ -412,11 +422,16 @@ async function stampaCarta() {
   // Genera HTML delle sezioni
   const sezioniHtml = tipi.map(tipo => {
     const viniHtml = gruppi[tipo].map(v => {
-      const pBot = v.prezzo_bottiglia ? `<div class="pr-riga"><span>Bottiglia</span><strong>€&nbsp;${parseFloat(v.prezzo_bottiglia).toFixed(2)}</strong></div>` : '';
-      const pCal = v.prezzo_mescita   ? `<div class="pr-riga"><span>Calice</span><strong>€&nbsp;${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div>`   : '';
-      const prezzi = pBot || pCal
-        ? `<div class="vino-prezzi">${pBot}${pCal}</div>`
-        : `<div class="vino-prezzi"><span class="su-richiesta">Su richiesta</span></div>`;
+      let prezzi;
+      if (solo_mescita) {
+        prezzi = `<div class="vino-prezzi"><div class="pr-riga"><span>Calice</span><strong>€&nbsp;${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div></div>`;
+      } else {
+        const pBot = v.prezzo_bottiglia ? `<div class="pr-riga"><span>Bottiglia</span><strong>€&nbsp;${parseFloat(v.prezzo_bottiglia).toFixed(2)}</strong></div>` : '';
+        const pCal = v.prezzo_mescita   ? `<div class="pr-riga"><span>Calice</span><strong>€&nbsp;${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div>`   : '';
+        prezzi = pBot || pCal
+          ? `<div class="vino-prezzi">${pBot}${pCal}</div>`
+          : `<div class="vino-prezzi"><span class="su-richiesta">Su richiesta</span></div>`;
+      }
 
       return `<div class="vino">
   <div class="vino-info">
@@ -445,7 +460,7 @@ async function stampaCarta() {
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>${nomeRistorante} — Carta dei Vini</title>
+<title>${nomeRistorante} — ${titoloCarta}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -673,7 +688,7 @@ body {
 <div class="contenuto">
   <header class="intestazione">
     <div class="int-nome">${nomeRistorante}</div>
-    <div class="int-carta">Carta dei Vini</div>
+    <div class="int-carta">${titoloCarta}</div>
     <div class="int-data">${data}</div>
   </header>
   ${sezioniHtml}
