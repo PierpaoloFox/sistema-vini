@@ -2,6 +2,33 @@ let authToken = sessionStorage.getItem('vini_token') || null;
 let tuttiVini = [];
 let idDaEliminare = null;
 
+const CATEGORIA_CONFIG = {
+  Vino: {
+    labelCantina: 'Cantina',
+    labelUve: 'Uve / Vitigni',
+    mostraAnnata: true,
+    labelAnnata: 'Annata',
+    tipoOptions: ['Rosso','Bianco','Bollicine','Rosato','Dolce','Orange','Fortificato'],
+    placeholderTesto: 'es. Cascina Gavetta Barolo DOCG 2020',
+  },
+  Birra: {
+    labelCantina: 'Birrificio',
+    labelUve: 'Malti e luppoli',
+    mostraAnnata: false,
+    labelAnnata: '',
+    tipoOptions: ['Lager','Weizen','IPA','Pale Ale','Stout','Porter','Ambrata','Sour','Belga','Trappista','Altro'],
+    placeholderTesto: 'es. Birrificio Italiano Bibock',
+  },
+  Distillato: {
+    labelCantina: 'Distilleria',
+    labelUve: 'Base / Botaniche',
+    mostraAnnata: true,
+    labelAnnata: 'Invecchiamento / Annata',
+    tipoOptions: ['Whisky','Gin','Rum','Grappa','Acquavite','Amaro','Cognac','Armagnac','Calvados','Mezcal','Tequila','Vodka','Altro'],
+    placeholderTesto: 'es. Capovilla Ciliegie Duroni',
+  }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
   if (authToken) mostraApp();
 });
@@ -124,6 +151,11 @@ function apriFormNuovo() {
   // Modalità nuovo: mostra il campo testo libero
   document.getElementById('campo-testo-libero').style.display = '';
   document.getElementById('f-testo-libero').value = '';
+  document.getElementById('f-categoria').value = 'Vino';
+  document.querySelectorAll('.cat-scelta-btn').forEach(b => b.classList.remove('attivo'));
+  document.querySelector('.cat-scelta-btn[data-cat="Vino"]').classList.add('attivo');
+  aggiornaCampiCategoria('Vino');
+  document.getElementById('campo-categoria').style.display = '';
   apriPannello();
   setTimeout(() => document.getElementById('f-testo-libero').focus(), 100);
 }
@@ -144,6 +176,15 @@ function apriFormModifica(id) {
   document.getElementById('f-prezzo-bottiglia').value = v.prezzo_bottiglia || '';
   document.getElementById('f-prezzo-mescita').value  = v.prezzo_mescita || '';
   document.getElementById('stato-ia').textContent    = '';
+  // Categoria
+  const cat = v.categoria || 'Vino';
+  document.getElementById('f-categoria').value = cat;
+  document.querySelectorAll('.cat-scelta-btn').forEach(b => b.classList.remove('attivo'));
+  document.querySelector(`.cat-scelta-btn[data-cat="${cat}"]`).classList.add('attivo');
+  aggiornaCampiCategoria(cat);
+  // Dopo aver aggiornato il tipo, riseleziona il valore corretto
+  document.getElementById('f-tipo').value = v.tipo || '';
+  document.getElementById('campo-categoria').style.display = 'none'; // non mostrare in modifica
   // Modalità modifica: nasconde il campo testo libero (già tutto compilato)
   document.getElementById('campo-testo-libero').style.display = 'none';
   apriPannello();
@@ -158,6 +199,35 @@ function apriPannello() {
 function chiudiForm() {
   document.getElementById('overlay-admin').classList.remove('aperta');
   document.getElementById('pannello-form').classList.remove('aperto');
+}
+
+// ── Categoria ─────────────────────────────────────────────────────────────────
+
+function selezionaCategoria(cat, el) {
+  document.getElementById('f-categoria').value = cat;
+  document.querySelectorAll('.cat-scelta-btn').forEach(b => b.classList.remove('attivo'));
+  el.classList.add('attivo');
+  aggiornaCampiCategoria(cat);
+}
+
+function aggiornaCampiCategoria(cat) {
+  const cfg = CATEGORIA_CONFIG[cat] || CATEGORIA_CONFIG.Vino;
+  // Labels
+  document.getElementById('label-cantina').innerHTML = cfg.labelCantina + ' <span class="label-hint">AI</span>';
+  document.getElementById('label-uve').innerHTML = cfg.labelUve + ' <span class="label-hint">AI</span>';
+  // Annata
+  const campoAnnata = document.getElementById('campo-annata');
+  if (campoAnnata) {
+    campoAnnata.style.display = cfg.mostraAnnata ? '' : 'none';
+    if (cfg.mostraAnnata) document.getElementById('label-annata').innerHTML = cfg.labelAnnata + ' <span class="label-hint">AI</span>';
+  }
+  // Tipo options
+  const sel = document.getElementById('f-tipo');
+  sel.innerHTML = '<option value="">— seleziona —</option>' +
+    cfg.tipoOptions.map(t => `<option value="${t}">${t}</option>`).join('');
+  // Placeholder testo libero
+  const testoEl = document.getElementById('f-testo-libero');
+  if (testoEl) testoEl.placeholder = cfg.placeholderTesto;
 }
 
 // ── Salva ─────────────────────────────────────────────────────────────────────
@@ -178,6 +248,7 @@ async function salvaVino(e) {
     regione:          document.getElementById('f-regione').value.trim(),
     prezzo_bottiglia: document.getElementById('f-prezzo-bottiglia').value || null,
     prezzo_mescita:   document.getElementById('f-prezzo-mescita').value || null,
+    categoria:        document.getElementById('f-categoria').value || 'Vino',
   };
 
   if (!dati.nome) {
@@ -285,6 +356,10 @@ async function generaDescrizione() {
     const dati = await res.json();
     if (!res.ok) throw new Error(dati.errore || 'Errore AI');
 
+    if (dati.categoria) {
+      const catEl = document.querySelector(`.cat-scelta-btn[data-cat="${dati.categoria}"]`);
+      if (catEl) selezionaCategoria(dati.categoria, catEl);
+    }
     if (dati.nome)        document.getElementById('f-nome').value        = dati.nome;
     if (dati.cantina)     document.getElementById('f-cantina').value     = dati.cantina;
     if (dati.annata)      document.getElementById('f-annata').value      = dati.annata;
@@ -365,320 +440,181 @@ async function scaricaBackup() {
   }
 }
 
-// ── Stampa carta vini ─────────────────────────────────────────────────────────
+// ── Stampa carta ──────────────────────────────────────────────────────────────
 
-async function stampaCarta() {
-  await _apriStampa({ solo_mescita: false });
+function apriDialogoStampa() {
+  if (tuttiVini.length === 0) { mostraToast('Nessuna bevanda da stampare.', 'errore'); return; }
+  document.getElementById('overlay-stampa').classList.add('aperta');
+  document.getElementById('dialogo-stampa').classList.add('aperto');
 }
 
-async function stampaMescita() {
-  await _apriStampa({ solo_mescita: true });
+function chiudiDialogoStampa() {
+  document.getElementById('overlay-stampa').classList.remove('aperta');
+  document.getElementById('dialogo-stampa').classList.remove('aperto');
 }
 
-async function _apriStampa({ solo_mescita }) {
-  let vini = tuttiVini.filter(v => !v.terminato);
-  if (solo_mescita) vini = vini.filter(v => v.prezzo_mescita);
+function toggleViniModo() {
+  const chk = document.getElementById('chk-vini');
+  document.getElementById('submenu-vini').style.display = chk.checked ? '' : 'none';
+}
 
-  if (vini.length === 0) {
-    mostraToast(solo_mescita ? 'Nessun vino al calice da stampare.' : 'Nessun vino disponibile da stampare.', 'errore');
+async function eseguiStampa() {
+  const includiVini = document.getElementById('chk-vini').checked;
+  const includiBirre = document.getElementById('chk-birre').checked;
+  const includiDistillati = document.getElementById('chk-distillati').checked;
+  const viniModo = document.querySelector('input[name="vini-modo"]:checked')?.value || 'bottiglie';
+
+  if (!includiVini && !includiBirre && !includiDistillati) {
+    mostraToast('Seleziona almeno una categoria.', 'errore');
     return;
   }
 
-  let nomeRistorante = 'Carta dei Vini';
+  chiudiDialogoStampa();
+  await _apriStampa({ includiVini, includiBirre, includiDistillati, viniModo });
+}
+
+async function _apriStampa({ includiVini, includiBirre, includiDistillati, viniModo }) {
+  const disponibili = tuttiVini.filter(v => !v.terminato);
+
+  let nomeRistorante = 'Carta';
   try {
     const r = await fetch('/api/config-pubblica');
     const cfg = await r.json();
     if (cfg.nome_ristorante) nomeRistorante = cfg.nome_ristorante;
   } catch {}
 
-  const titoloCarta = solo_mescita ? 'Carta dei Vini al Calice' : 'Carta dei Vini';
+  const ORDINE_VINI = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange', 'Fortificato'];
+  const LABEL_VINI = { Bollicine:'Bollicine & Spumanti', Bianco:'Vini Bianchi', Rosso:'Vini Rossi', Rosato:'Vini Rosati', Dolce:'Vini Dolci', Orange:'Orange Wine', Fortificato:'Vini Fortificati' };
 
-  const ORDINE = ['Bollicine', 'Bianco', 'Rosso', 'Rosato', 'Dolce', 'Orange', 'Fortificato'];
-  const LABEL  = {
-    Bollicine:  'Bollicine & Spumanti',
-    Bianco:     'Vini Bianchi',
-    Rosso:      'Vini Rossi',
-    Rosato:     'Vini Rosati',
-    Dolce:      'Vini Dolci',
-    Orange:     'Orange Wine',
-    Fortificato:'Vini Fortificati',
-  };
+  // CSS comune
+  const cssComune = `
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Montserrat', sans-serif; font-size: 9pt; color: #1a1210; background: #fff; line-height: 1.5; }
+.intestazione { text-align: center; padding-bottom: 14px; margin-bottom: 20px; border-bottom: 2px solid #7a1828; }
+.int-nome { font-family: 'Cormorant Garamond', serif; font-size: 30pt; font-weight: 300; color: #7a1828; letter-spacing: 4px; line-height: 1.1; }
+.int-carta { font-size: 7.5pt; font-weight: 500; letter-spacing: 5px; text-transform: uppercase; color: #9b8f84; margin-top: 4px; }
+.int-data { font-size: 7pt; color: #c0b0a5; margin-top: 5px; }
+.macro-sezione { margin-bottom: 28px; }
+.macro-sezione-titolo { font-family: 'Cormorant Garamond', serif; font-size: 18pt; font-weight: 300; color: #7a1828; letter-spacing: 6px; text-transform: uppercase; text-align: center; margin-bottom: 16px; padding: 10px 0; border-top: 2px solid #7a1828; border-bottom: 1px solid #e8d5a3; break-before: page; }
+.macro-sezione:first-child .macro-sezione-titolo { break-before: auto; }
+.sezione { margin-bottom: 16px; break-inside: avoid-page; }
+.sezione-titolo { font-family: 'Cormorant Garamond', serif; font-size: 13pt; font-weight: 600; color: #7a1828; letter-spacing: 3px; text-transform: uppercase; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.sezione-titolo span { white-space: nowrap; }
+.sezione-titolo::after { content: ''; display: block; flex: 1; height: 1px; background: #e8d5a3; }
+.distilleria-titolo { font-size: 9pt; font-weight: 600; color: #5a4535; text-transform: uppercase; letter-spacing: 1px; margin: 8px 0 4px; padding-left: 4px; border-left: 2px solid #e8d5a3; }
+.vino { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding: 6px 0; border-bottom: 1px dotted #e8d5a3; break-inside: avoid; }
+.vino:last-child { border-bottom: none; }
+.vino-info { flex: 1; min-width: 0; }
+.vino-header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px; margin-bottom: 1px; }
+.vino-cantina { font-size: 7.5pt; font-weight: 500; color: #7a6a5f; text-transform: uppercase; letter-spacing: 0.5px; }
+.sep { color: #c0b0a5; font-size: 7pt; }
+.vino-nome { font-family: 'Cormorant Garamond', serif; font-size: 12.5pt; font-weight: 600; color: #1a1210; }
+.vino-annata { font-size: 8pt; font-weight: 300; color: #9b8f84; }
+.vino-meta { font-size: 7.5pt; color: #9b8f84; font-style: italic; margin-top: 1px; }
+.vino-uve { color: #7a6a5f; font-style: normal; }
+.vino-descr { font-size: 7.5pt; color: #6b6158; font-style: italic; line-height: 1.55; margin-top: 3px; }
+.vino-prezzi { text-align: right; flex-shrink: 0; min-width: 88px; }
+.pr-riga { display: flex; justify-content: flex-end; align-items: baseline; gap: 5px; line-height: 1.7; }
+.pr-riga span { font-size: 6.5pt; font-weight: 300; color: #b0a59a; text-transform: uppercase; letter-spacing: 0.5px; }
+.pr-riga strong { font-size: 9pt; font-weight: 600; color: #1a1210; }
+.su-richiesta { font-size: 7pt; color: #c0b0a5; font-style: italic; }
+@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } }
+@media screen {
+  .barra-stampa { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 1px solid #e8d5a3; padding: 10px 20px; display: flex; justify-content: flex-end; }
+  .btn-print { background: #7a1828; color: #fff; border: none; padding: 8px 20px; border-radius: 6px; font-family: 'Montserrat', sans-serif; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+  .btn-print:hover { background: #5e1220; }
+  body { padding-bottom: 40px; }
+  .contenuto { max-width: 780px; margin: 0 auto; padding: 20px; }
+}`;
 
-  // Raggruppa e ordina
-  const gruppi = {};
-  vini.forEach(v => {
-    const t = v.tipo || 'Altro';
-    if (!gruppi[t]) gruppi[t] = [];
-    gruppi[t].push(v);
-  });
-  Object.values(gruppi).forEach(g =>
-    g.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'))
-  );
-  const tipi = [
-    ...ORDINE.filter(t => gruppi[t]),
-    ...Object.keys(gruppi).filter(t => !ORDINE.includes(t))
-  ];
-
-  // Genera HTML delle sezioni
-  const sezioniHtml = tipi.map(tipo => {
-    const viniHtml = gruppi[tipo].map(v => {
-      let prezzi;
-      if (solo_mescita) {
-        prezzi = `<div class="vino-prezzi"><div class="pr-riga"><span>Calice</span><strong>€&nbsp;${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div></div>`;
-      } else {
-        const pBot = v.prezzo_bottiglia ? `<div class="pr-riga"><span>Bottiglia</span><strong>€&nbsp;${parseFloat(v.prezzo_bottiglia).toFixed(2)}</strong></div>` : '';
-        const pCal = v.prezzo_mescita   ? `<div class="pr-riga"><span>Calice</span><strong>€&nbsp;${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div>`   : '';
-        prezzi = pBot || pCal
-          ? `<div class="vino-prezzi">${pBot}${pCal}</div>`
-          : `<div class="vino-prezzi"><span class="su-richiesta">Su richiesta</span></div>`;
-      }
-
-      return `<div class="vino">
+  function voceHTML(v, mostraCantina = true) {
+    const pBot = v.prezzo_bottiglia ? `<div class="pr-riga"><span>Bottiglia</span><strong>€ ${parseFloat(v.prezzo_bottiglia).toFixed(2)}</strong></div>` : '';
+    const pCal = v.prezzo_mescita   ? `<div class="pr-riga"><span>Calice</span><strong>€ ${parseFloat(v.prezzo_mescita).toFixed(2)}</strong></div>` : '';
+    const prezzi = pBot || pCal ? `${pBot}${pCal}` : '<span class="su-richiesta">Su richiesta</span>';
+    return `<div class="vino">
   <div class="vino-info">
     <div class="vino-header">
-      ${v.cantina ? `<span class="vino-cantina">${v.cantina}</span><span class="sep">·</span>` : ''}
+      ${mostraCantina && v.cantina ? `<span class="vino-cantina">${v.cantina}</span><span class="sep">·</span>` : ''}
       <span class="vino-nome">${v.nome || '—'}</span>
-      ${v.annata  ? `<span class="vino-annata">${v.annata}</span>` : ''}
+      ${v.annata && (v.categoria || 'Vino') !== 'Birra' ? `<span class="vino-annata">${v.annata}</span>` : ''}
     </div>
     ${(v.regione || v.nazione) ? `<div class="vino-meta">${[v.regione, v.nazione].filter(Boolean).join(' · ')}</div>` : ''}
-    ${v.uve         ? `<div class="vino-meta vino-uve">${v.uve}</div>` : ''}
+    ${v.uve ? `<div class="vino-meta vino-uve">${v.uve}</div>` : ''}
     ${v.descrizione ? `<div class="vino-descr">${v.descrizione}</div>` : ''}
   </div>
-  ${prezzi}
+  <div class="vino-prezzi">${prezzi}</div>
 </div>`;
-    }).join('');
+  }
 
-    return `<section class="sezione">
-  <h2 class="sezione-titolo"><span>${LABEL[tipo] || tipo}</span></h2>
-  ${viniHtml}
-</section>`;
-  }).join('\n');
+  function sezionePerTipoHTML(voci, labelMap, ordine) {
+    const gruppi = {};
+    voci.forEach(v => { const t = v.tipo || 'Altro'; if (!gruppi[t]) gruppi[t] = []; gruppi[t].push(v); });
+    const tipi = ordine ? [...ordine.filter(t => gruppi[t]), ...Object.keys(gruppi).filter(t => !ordine.includes(t))] : Object.keys(gruppi).sort();
+    return tipi.map(tipo => `
+      <div class="sezione">
+        <h2 class="sezione-titolo"><span>${labelMap?.[tipo] || tipo}</span></h2>
+        ${gruppi[tipo].map(v => voceHTML(v)).join('')}
+      </div>`).join('');
+  }
 
+  function distillatiHTML(voci) {
+    // Raggruppa per tipo, poi per distilleria
+    const perTipo = {};
+    voci.forEach(v => { const t = v.tipo || 'Altro'; if (!perTipo[t]) perTipo[t] = {}; const d = v.cantina || 'Altra distilleria'; if (!perTipo[t][d]) perTipo[t][d] = []; perTipo[t][d].push(v); });
+    return Object.keys(perTipo).sort().map(tipo => `
+      <div class="sezione">
+        <h2 class="sezione-titolo"><span>${tipo}</span></h2>
+        ${Object.keys(perTipo[tipo]).sort().map(dist => `
+          <div class="distilleria-titolo">${dist}</div>
+          ${perTipo[tipo][dist].sort((a,b) => (a.nome||'').localeCompare(b.nome||'')).map(v => voceHTML(v, false)).join('')}
+        `).join('')}
+      </div>`).join('');
+  }
+
+  // Costruisci le sezioni
+  let sezioniHtml = '';
   const data = new Date().toLocaleDateString('it-IT', { year: 'numeric', month: 'long' });
+  let titoloDoc = [];
+
+  if (includiVini) {
+    let viniF = disponibili.filter(v => (v.categoria || 'Vino') === 'Vino');
+    if (viniModo === 'calice') viniF = viniF.filter(v => v.prezzo_mescita);
+    else viniF = viniF.filter(v => v.prezzo_bottiglia || !v.prezzo_mescita);
+    if (viniF.length) {
+      const titolo = viniModo === 'calice' ? 'Vini al Calice' : 'Carta dei Vini';
+      titoloDoc.push(titolo);
+      sezioniHtml += `<div class="macro-sezione"><div class="macro-sezione-titolo">${titolo}</div>${sezionePerTipoHTML(viniF, LABEL_VINI, ORDINE_VINI)}</div>`;
+    }
+  }
+
+  if (includiBirre) {
+    const birre = disponibili.filter(v => (v.categoria || 'Vino') === 'Birra');
+    if (birre.length) {
+      titoloDoc.push('Birre');
+      sezioniHtml += `<div class="macro-sezione"><div class="macro-sezione-titolo">Birre</div>${sezionePerTipoHTML(birre, {}, null)}</div>`;
+    }
+  }
+
+  if (includiDistillati) {
+    const dist = disponibili.filter(v => (v.categoria || 'Vino') === 'Distillato');
+    if (dist.length) {
+      titoloDoc.push('Distillati');
+      sezioniHtml += `<div class="macro-sezione"><div class="macro-sezione-titolo">Distillati</div>${distillatiHTML(dist)}</div>`;
+    }
+  }
+
+  if (!sezioniHtml) { mostraToast('Nessuna bevanda disponibile per le categorie selezionate.', 'errore'); return; }
 
   const html = `<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>${nomeRistorante} — ${titoloCarta}</title>
+<title>${nomeRistorante} — ${titoloDoc.join(' + ')}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-@page {
-  size: A4;
-  margin: 18mm 20mm 20mm;
-  @bottom-center {
-    content: counter(page) " / " counter(pages);
-    font-family: 'Montserrat', sans-serif;
-    font-size: 7pt;
-    color: #b0a59a;
-  }
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 9pt;
-  color: #1a1210;
-  background: #fff;
-  line-height: 1.5;
-}
-
-/* ── Intestazione ── */
-.intestazione {
-  text-align: center;
-  padding-bottom: 14px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #7a1828;
-}
-
-.int-nome {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 30pt;
-  font-weight: 300;
-  color: #7a1828;
-  letter-spacing: 4px;
-  line-height: 1.1;
-}
-
-.int-carta {
-  font-size: 7.5pt;
-  font-weight: 500;
-  letter-spacing: 5px;
-  text-transform: uppercase;
-  color: #9b8f84;
-  margin-top: 4px;
-}
-
-.int-data {
-  font-size: 7pt;
-  color: #c0b0a5;
-  margin-top: 5px;
-}
-
-/* ── Sezioni ── */
-.sezione {
-  margin-bottom: 20px;
-  break-inside: avoid-page;
-}
-
-.sezione-titolo {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 13pt;
-  font-weight: 600;
-  color: #7a1828;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.sezione-titolo span { white-space: nowrap; }
-
-.sezione-titolo::after {
-  content: '';
-  display: block;
-  flex: 1;
-  height: 1px;
-  background: #e8d5a3;
-}
-
-/* ── Voce vino ── */
-.vino {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 7px 0;
-  border-bottom: 1px dotted #e8d5a3;
-  break-inside: avoid;
-}
-
-.vino:last-child { border-bottom: none; }
-
-.vino-info { flex: 1; min-width: 0; }
-
-.vino-header {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 1px;
-}
-
-.vino-cantina {
-  font-size: 7.5pt;
-  font-weight: 500;
-  color: #7a6a5f;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.sep { color: #c0b0a5; font-size: 7pt; }
-
-.vino-nome {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 12.5pt;
-  font-weight: 600;
-  color: #1a1210;
-}
-
-.vino-annata {
-  font-size: 8pt;
-  font-weight: 300;
-  color: #9b8f84;
-}
-
-.vino-meta {
-  font-size: 7.5pt;
-  color: #9b8f84;
-  font-style: italic;
-  margin-top: 1px;
-}
-
-.vino-uve { color: #7a6a5f; font-style: normal; }
-
-.vino-descr {
-  font-size: 7.5pt;
-  color: #6b6158;
-  font-style: italic;
-  line-height: 1.55;
-  margin-top: 3px;
-}
-
-/* ── Prezzi ── */
-.vino-prezzi {
-  text-align: right;
-  flex-shrink: 0;
-  min-width: 88px;
-}
-
-.pr-riga {
-  display: flex;
-  justify-content: flex-end;
-  align-items: baseline;
-  gap: 5px;
-  line-height: 1.7;
-}
-
-.pr-riga span {
-  font-size: 6.5pt;
-  font-weight: 300;
-  color: #b0a59a;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.pr-riga strong {
-  font-size: 9pt;
-  font-weight: 600;
-  color: #1a1210;
-}
-
-.su-richiesta {
-  font-size: 7pt;
-  color: #c0b0a5;
-  font-style: italic;
-}
-
-/* ── Stampa ── */
-@media print {
-  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .no-print { display: none !important; }
-}
-
-/* ── Pulsante (solo schermo) ── */
-@media screen {
-  .barra-stampa {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: #fff;
-    border-bottom: 1px solid #e8d5a3;
-    padding: 10px 20px;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  .btn-print {
-    background: #7a1828;
-    color: #fff;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 6px;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-  }
-  .btn-print:hover { background: #5e1220; }
-  body { padding-bottom: 40px; }
-  .contenuto { max-width: 780px; margin: 0 auto; padding: 20px 20px; }
-}
+@page { size: A4; margin: 18mm 20mm 20mm; @bottom-center { content: counter(page) " / " counter(pages); font-family: 'Montserrat', sans-serif; font-size: 7pt; color: #b0a59a; } }
+${cssComune}
 </style>
 </head>
 <body>
@@ -688,26 +624,17 @@ body {
 <div class="contenuto">
   <header class="intestazione">
     <div class="int-nome">${nomeRistorante}</div>
-    <div class="int-carta">${titoloCarta}</div>
+    <div class="int-carta">${titoloDoc.join(' · ')}</div>
     <div class="int-data">${data}</div>
   </header>
   ${sezioniHtml}
 </div>
-<script>
-  // Attendi il caricamento dei font prima di stampare
-  document.fonts.ready.then(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('auto') === '1') window.print();
-  });
-<\/script>
+<script>document.fonts.ready.then(() => { if(new URLSearchParams(location.search).get('auto')==='1') window.print(); });<\/script>
 </body>
 </html>`;
 
   const w = window.open('', '_blank');
-  if (!w) {
-    mostraToast('Abilita i popup per questa pagina e riprova.', 'errore');
-    return;
-  }
+  if (!w) { mostraToast('Abilita i popup per questa pagina e riprova.', 'errore'); return; }
   w.document.write(html);
   w.document.close();
 }
@@ -780,6 +707,7 @@ function importaDaTxt(input) {
             descrizione:      dati.descrizione      || '',
             nazione:          dati.nazione          || '',
             regione:          dati.regione          || '',
+            categoria:        dati.categoria        || 'Vino',
             prezzo_bottiglia: null,
             prezzo_mescita:   null,
           })
@@ -827,5 +755,5 @@ function mostraToast(messaggio, tipo = '') {
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { chiudiForm(); annullaElimina(); }
+  if (e.key === 'Escape') { chiudiForm(); annullaElimina(); chiudiDialogoStampa(); }
 });

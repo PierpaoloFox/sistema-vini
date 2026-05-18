@@ -23,6 +23,13 @@
     </div>
   </header>
 
+  <!-- Macro-selezione categoria -->
+  <nav class="categorie-bar">
+    <button class="cat-btn attivo" data-categoria="Vino" onclick="setCategoria('Vino',this)">🍷 Vini</button>
+    <button class="cat-btn" data-categoria="Birra" onclick="setCategoria('Birra',this)">🍺 Birre</button>
+    <button class="cat-btn" data-categoria="Distillato" onclick="setCategoria('Distillato',this)">🥃 Distillati</button>
+  </nav>
+
   <!-- Filtri nazioni -->
   <nav class="filtri-bar">
     <div class="filtri-scroll">
@@ -34,7 +41,7 @@
   <!-- Ricerca + toggle vista -->
   <div class="ricerca-bar">
     <div class="ricerca-inner">
-      <input type="text" id="ricerca" placeholder="Cerca per nome, cantina, uva..." autocomplete="off">
+      <input type="text" id="ricerca" placeholder="Cerca per nome, produttore..." autocomplete="off">
       <span class="ricerca-icon">&#128269;</span>
     </div>
     <div class="vista-toggle">

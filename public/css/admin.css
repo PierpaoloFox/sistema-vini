@@ -711,3 +711,87 @@ body {
   transition: width 0.3s ease;
 }
 .toast.errore   { background: var(--rosso); }
+
+/* ── Categoria scelta nel form ───────────────────────────────────────────── */
+.categoria-scelta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cat-scelta-btn {
+  background: transparent;
+  border: 1px solid var(--bordo);
+  color: var(--testo-2);
+  padding: 8px 16px;
+  border-radius: var(--raggio);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cat-scelta-btn:hover { border-color: var(--testo-2); }
+.cat-scelta-btn.attivo { background: var(--primario); border-color: var(--primario); color: #fff; font-weight: 500; }
+
+/* ── Dialogo stampa ──────────────────────────────────────────────────────── */
+.dialogo-stampa {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: var(--bianco);
+  border-radius: var(--raggio);
+  padding: 28px 32px;
+  width: min(400px, 90vw);
+  z-index: 400;
+  box-shadow: var(--ombra-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.dialogo-stampa.aperto {
+  opacity: 1;
+  pointer-events: all;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.dialogo-stampa h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.stampa-opzioni {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.stampa-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.stampa-check input { width: 16px; height: 16px; cursor: pointer; }
+
+.stampa-submenu {
+  display: flex;
+  gap: 20px;
+  padding-left: 26px;
+  margin-top: -4px;
+}
+
+.stampa-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--testo-2);
+  cursor: pointer;
+}

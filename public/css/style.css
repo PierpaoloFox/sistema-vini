@@ -550,6 +550,55 @@ header {
 .modale-prezzo-valore { font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--oro); font-weight: 400; line-height: 1; }
 .modale-prezzo-valore.nd { font-size: 0.9rem; color: var(--bordo); font-family: 'Montserrat', sans-serif; margin-top: 8px; }
 
+/* ── Categorie tab ────────────────────────────────────────────────────────── */
+.categorie-bar {
+  background: #5e1220;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  padding: 0 24px;
+  display: flex;
+  gap: 0;
+}
+
+.cat-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--testo-secondario);
+  padding: 14px 24px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.cat-btn:hover { color: var(--oro); }
+.cat-btn.attivo { color: var(--oro); border-bottom-color: var(--oro); font-weight: 500; }
+
+/* badge birra e distillato */
+.sezione-tipo-badge.ipa,
+.sezione-tipo-badge.stout,
+.sezione-tipo-badge.lager,
+.sezione-tipo-badge.weizen,
+.sezione-tipo-badge.sour,
+.sezione-tipo-badge.ambrata,
+.sezione-tipo-badge.belga,
+.sezione-tipo-badge.trappista { color: #ffd199; }
+
+.sezione-tipo-badge.whisky,
+.sezione-tipo-badge.gin,
+.sezione-tipo-badge.rum,
+.sezione-tipo-badge.grappa,
+.sezione-tipo-badge.acquavite,
+.sezione-tipo-badge.amaro,
+.sezione-tipo-badge.cognac,
+.sezione-tipo-badge.calvados,
+.sezione-tipo-badge.mezcal,
+.sezione-tipo-badge.tequila,
+.sezione-tipo-badge.vodka { color: #d4c5a0; }
+
 /* ── Responsive tablet ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   header { padding: 16px; }

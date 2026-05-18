@@ -68,6 +68,7 @@ async function initDB() {
   `);
   // Migrazione: aggiunge la colonna se la tabella esisteva già senza di essa
   await pool.query(`ALTER TABLE vini ADD COLUMN IF NOT EXISTS terminato BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE vini ADD COLUMN IF NOT EXISTS categoria TEXT DEFAULT 'Vino'`);
   console.log('✅ Tabella vini pronta.');
 }
 
@@ -92,12 +93,13 @@ async function salvaVini(vini) {
       await client.query(
         `INSERT INTO vini
            (id, tipo, cantina, nome, annata, uve, descrizione, nazione, regione,
-            prezzo_bottiglia, prezzo_mescita, creato_il, modificato_il, terminato)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+            prezzo_bottiglia, prezzo_mescita, creato_il, modificato_il, terminato, categoria)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)`,
         [ v.id, v.tipo || '', v.cantina || '', v.nome || '', v.annata || '',
           v.uve || '', v.descrizione || '', v.nazione || '', v.regione || '',
           v.prezzo_bottiglia || null, v.prezzo_mescita || null,
-          v.creato_il || null, v.modificato_il || null, v.terminato || false ]
+          v.creato_il || null, v.modificato_il || null, v.terminato || false,
+          v.categoria || 'Vino' ]
       );
     }
     await client.query('COMMIT');
@@ -171,6 +173,7 @@ app.post('/api/admin/vini', requireAuth, async (req, res) => {
     regione:          req.body.regione          || '',
     prezzo_bottiglia: req.body.prezzo_bottiglia || null,
     prezzo_mescita:   req.body.prezzo_mescita   || null,
+    categoria:        req.body.categoria        || 'Vino',
     creato_il: new Date().toISOString()
   };
   vini.push(vino);
@@ -194,6 +197,7 @@ app.put('/api/admin/vini/:id', requireAuth, async (req, res) => {
     regione:          req.body.regione          ?? vini[idx].regione,
     prezzo_bottiglia: req.body.prezzo_bottiglia ?? vini[idx].prezzo_bottiglia,
     prezzo_mescita:   req.body.prezzo_mescita   ?? vini[idx].prezzo_mescita,
+    categoria:        req.body.categoria        ?? vini[idx].categoria,
     modificato_il: new Date().toISOString()
   };
   await salvaVini(vini);
@@ -245,17 +249,18 @@ app.post('/api/admin/genera-descrizione', requireAuth, async (req, res) => {
       max_tokens: 500,
       messages: [{
         role: 'user',
-        content: `Sei un sommelier esperto. Analizza il testo seguente che descrive un vino e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
+        content: `Sei un esperto di bevande (sommelier, beer sommelier, bartender). Analizza il testo seguente che descrive una bevanda e rispondi SOLO con un oggetto JSON valido, senza testo prima o dopo:
 
 {
-  "nome": "nome del vino senza il nome della cantina (es. Barolo DOCG, Brunello di Montalcino Riserva)",
-  "cantina": "nome della cantina o produttore (es. Cascina Gavetta)",
+  "categoria": "uno tra: Vino, Birra, Distillato",
+  "nome": "nome della bevanda senza il nome del produttore (es. Barolo DOCG, Bibock, Nikka From The Barrel)",
+  "cantina": "nome del produttore, cantina, birrificio o distilleria (es. Cascina Gavetta, Birrificio Italiano, Nikka)",
   "annata": "anno come stringa (es. 2020), oppure stringa vuota se non indicato",
-  "tipo": "uno tra: Rosso, Bianco, Bollicine, Rosato, Dolce, Orange, Fortificato",
-  "uve": "vitigni principali con percentuale se nota, es. Nebbiolo 100%",
+  "tipo": "per Vino: uno tra Rosso/Bianco/Bollicine/Rosato/Dolce/Orange/Fortificato; per Birra: uno tra IPA/Stout/Lager/Weizen/Sour/Ambrata/Belga/Trappista/Altro; per Distillato: uno tra Whisky/Gin/Rum/Grappa/Acquavite/Amaro/Cognac/Calvados/Mezcal/Tequila/Vodka/Altro",
+  "uve": "per Vino: vitigni principali con percentuale se nota; per Birra: malti e luppoli principali; per Distillato: materia prima e botaniche principali",
   "descrizione": "descrizione sensoriale elegante max 80 parole, evoca profumi sapori e abbinamenti",
   "nazione": "paese di origine",
-  "regione": "regione vinicola di origine"
+  "regione": "regione di origine"
 }
 
 Testo: "${testo.trim()}"`

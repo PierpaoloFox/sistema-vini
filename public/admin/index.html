@@ -34,8 +34,7 @@
         <div class="admin-logo"><span>&#9770;</span><span>Gestione Vini</span></div>
         <div class="admin-header-azioni">
           <a href="/" target="_blank" class="btn btn-outline">&#128065; Vedi catalogo</a>
-          <button class="btn btn-outline btn-stampa" onclick="stampaCarta()" title="Stampa la carta completa delle bottiglie">&#128424; Stampa carta bottiglie</button>
-          <button class="btn btn-outline btn-stampa" onclick="stampaMescita()" title="Stampa la carta dei vini al calice">&#128424; Stampa carta mescita</button>
+          <button class="btn btn-outline btn-stampa" onclick="apriDialogoStampa()" title="Configura e stampa la carta">&#128424; Stampa carta</button>
           <button class="btn btn-outline" onclick="scaricaBackup()" title="Scarica una copia di tutti i vini in formato JSON">&#128190; Esporta</button>
           <button class="btn btn-outline" onclick="document.getElementById('input-importa').click()" title="Importa un file di backup JSON">&#128229; Importa</button>
           <input type="file" id="input-importa" accept=".json" style="display:none" onchange="importaBackup(this)">
@@ -49,7 +48,7 @@
     <main class="admin-main">
       <div class="admin-toolbar">
         <h2>Carta dei Vini <span id="contatore-vini" class="badge"></span></h2>
-        <button class="btn btn-primario" onclick="apriFormNuovo()">+ Aggiungi vino</button>
+        <button class="btn btn-primario" onclick="apriFormNuovo()">+ Aggiungi bevanda</button>
       </div>
 
       <div class="ricerca-admin">
@@ -93,6 +92,17 @@
 
       <div class="form-griglia">
 
+        <!-- Categoria -->
+        <div class="campo campo-full" id="campo-categoria">
+          <label>Categoria</label>
+          <div class="categoria-scelta">
+            <button type="button" class="cat-scelta-btn attivo" data-cat="Vino" onclick="selezionaCategoria('Vino',this)">🍷 Vino</button>
+            <button type="button" class="cat-scelta-btn" data-cat="Birra" onclick="selezionaCategoria('Birra',this)">🍺 Birra</button>
+            <button type="button" class="cat-scelta-btn" data-cat="Distillato" onclick="selezionaCategoria('Distillato',this)">🥃 Distillato</button>
+          </div>
+          <input type="hidden" id="f-categoria" value="Vino">
+        </div>
+
         <!-- Testo libero (solo in modalità nuovo) -->
         <div class="campo campo-full" id="campo-testo-libero">
           <label>Descrivi il vino</label>
@@ -130,12 +140,12 @@
           </div>
 
           <div class="campo">
-            <label>Cantina <span class="label-hint">AI</span></label>
+            <label id="label-cantina">Cantina <span class="label-hint">AI</span></label>
             <input type="text" id="f-cantina" placeholder="es. Cascina Gavetta">
           </div>
 
-          <div class="campo">
-            <label>Annata <span class="label-hint">AI</span></label>
+          <div class="campo" id="campo-annata">
+            <label id="label-annata">Annata <span class="label-hint">AI</span></label>
             <input type="number" id="f-annata" placeholder="es. 2020" min="1900" max="2099">
           </div>
 
@@ -143,13 +153,6 @@
             <label>Tipo <span class="label-hint">AI</span></label>
             <select id="f-tipo">
               <option value="">— seleziona —</option>
-              <option value="Rosso">🔴 Rosso</option>
-              <option value="Bianco">⚪ Bianco</option>
-              <option value="Bollicine">🫧 Bollicine</option>
-              <option value="Rosato">🌸 Rosato</option>
-              <option value="Dolce">🍯 Dolce</option>
-              <option value="Orange">🟠 Orange</option>
-              <option value="Fortificato">🏰 Fortificato</option>
             </select>
           </div>
 
@@ -164,7 +167,7 @@
           </div>
 
           <div class="campo campo-full-ai">
-            <label>Uve / Vitigni <span class="label-hint">AI</span></label>
+            <label id="label-uve">Uve / Vitigni <span class="label-hint">AI</span></label>
             <input type="text" id="f-uve" placeholder="es. Nebbiolo 100%">
           </div>
 
@@ -208,6 +211,34 @@
     </div>
     <div class="dialogo-azioni" id="importa-txt-footer" style="display:none">
       <button class="btn btn-primario" onclick="chiudiImportaTxt()">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- ── Dialogo stampa ─────────────────────────────────────────────── -->
+  <div class="overlay-admin" id="overlay-stampa" onclick="chiudiDialogoStampa()"></div>
+  <div class="dialogo-stampa" id="dialogo-stampa">
+    <h4>&#128424; Cosa vuoi stampare?</h4>
+    <div class="stampa-opzioni">
+      <label class="stampa-check">
+        <input type="checkbox" id="chk-vini" checked onchange="toggleViniModo()">
+        <span>🍷 Vini</span>
+      </label>
+      <div class="stampa-submenu" id="submenu-vini">
+        <label class="stampa-radio"><input type="radio" name="vini-modo" value="bottiglie" checked> Bottiglie</label>
+        <label class="stampa-radio"><input type="radio" name="vini-modo" value="calice"> Al calice</label>
+      </div>
+      <label class="stampa-check">
+        <input type="checkbox" id="chk-birre">
+        <span>🍺 Birre</span>
+      </label>
+      <label class="stampa-check">
+        <input type="checkbox" id="chk-distillati">
+        <span>🥃 Distillati</span>
+      </label>
+    </div>
+    <div class="dialogo-azioni">
+      <button class="btn btn-ghost" onclick="chiudiDialogoStampa()">Annulla</button>
+      <button class="btn btn-primario" onclick="eseguiStampa()">Stampa PDF</button>
     </div>
   </div>
 
