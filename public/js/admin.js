@@ -348,6 +348,109 @@ async function scaricaBackup() {
   }
 }
 
+// ── Importa da TXT ────────────────────────────────────────────────────────────
+
+function importaDaTxt(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    // Divide per righe, rimuove vuote e righe che iniziano con # (commenti)
+    const righe = e.target.result
+      .split('\n')
+      .map(r => r.trim())
+      .filter(r => r && !r.startsWith('#'));
+
+    if (righe.length === 0) {
+      mostraToast('Il file è vuoto o non contiene vini.', 'errore');
+      return;
+    }
+
+    // Apri modale di progresso
+    const logEl      = document.getElementById('importa-txt-log');
+    const barraEl    = document.getElementById('importa-txt-barra');
+    const contatoreEl = document.getElementById('importa-txt-contatore');
+    const titoloEl   = document.getElementById('importa-txt-titolo');
+    const footerEl   = document.getElementById('importa-txt-footer');
+
+    logEl.innerHTML = '';
+    barraEl.style.width = '0%';
+    contatoreEl.textContent = `0 / ${righe.length}`;
+    titoloEl.textContent = 'Importazione in corso...';
+    footerEl.style.display = 'none';
+
+    document.getElementById('overlay-importa-txt').classList.add('aperta');
+    document.getElementById('dialogo-importa-txt').classList.add('aperto');
+
+    let ok = 0, errori = 0;
+
+    for (let i = 0; i < righe.length; i++) {
+      const riga = righe[i];
+      const voce = document.createElement('div');
+      voce.className = 'importa-riga in-corso';
+      voce.innerHTML = `<span class="importa-riga-testo">${riga}</span><span class="importa-riga-stato">&#8987; analisi...</span>`;
+      logEl.appendChild(voce);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      try {
+        // 1. Genera dati con AI
+        const resAi = await apiFetch('/api/admin/genera-descrizione', {
+          method: 'POST',
+          body: JSON.stringify({ testo: riga })
+        });
+        const dati = await resAi.json();
+        if (!resAi.ok) throw new Error(dati.errore || 'Errore AI');
+        if (!dati.nome) throw new Error('Nome non rilevato');
+
+        // 2. Salva nel catalogo
+        const resVino = await apiFetch('/api/admin/vini', {
+          method: 'POST',
+          body: JSON.stringify({
+            nome:             dati.nome             || '',
+            cantina:          dati.cantina          || '',
+            tipo:             dati.tipo             || '',
+            annata:           dati.annata           || '',
+            uve:              dati.uve              || '',
+            descrizione:      dati.descrizione      || '',
+            nazione:          dati.nazione          || '',
+            regione:          dati.regione          || '',
+            prezzo_bottiglia: null,
+            prezzo_mescita:   null,
+          })
+        });
+        if (!resVino.ok) throw new Error('Errore salvataggio');
+
+        ok++;
+        voce.className = 'importa-riga ok';
+        voce.querySelector('.importa-riga-stato').innerHTML = '&#10003; ' + (dati.cantina ? dati.cantina + ' — ' : '') + dati.nome;
+      } catch (err) {
+        errori++;
+        voce.className = 'importa-riga ko';
+        voce.querySelector('.importa-riga-stato').innerHTML = '&#10007; ' + (err.message || 'errore');
+      }
+
+      contatoreEl.textContent = `${i + 1} / ${righe.length}`;
+      barraEl.style.width = `${Math.round(((i + 1) / righe.length) * 100)}%`;
+    }
+
+    // Fine
+    titoloEl.textContent = errori === 0
+      ? `Importazione completata — ${ok} vini aggiunti`
+      : `Completata con errori — ${ok} aggiunti, ${errori} falliti`;
+    footerEl.style.display = '';
+
+    await caricaVini();
+  };
+  reader.readAsText(file);
+}
+
+function chiudiImportaTxt() {
+  document.getElementById('overlay-importa-txt').classList.remove('aperta');
+  document.getElementById('dialogo-importa-txt').classList.remove('aperto');
+}
+
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
 function mostraToast(messaggio, tipo = '') {

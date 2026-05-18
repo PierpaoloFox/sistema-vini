@@ -533,4 +533,119 @@ body {
 }
 
 .toast.successo { background: var(--verde); }
+
+/* ── Modale Importa da TXT ───────────────────────────────────────────────── */
+.dialogo-importa-txt {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: var(--bianco);
+  border-radius: var(--raggio);
+  padding: 28px 32px;
+  width: min(560px, 92vw);
+  z-index: 400;
+  box-shadow: var(--ombra-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialogo-importa-txt.aperto {
+  opacity: 1;
+  pointer-events: all;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.importa-txt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.importa-txt-header h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.importa-txt-badge {
+  background: var(--primario);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.importa-txt-log {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--bordo);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #faf9f7;
+}
+
+.importa-riga {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  padding: 5px 0;
+  border-bottom: 1px solid #f0ece6;
+}
+
+.importa-riga:last-child { border-bottom: none; }
+
+.importa-riga-testo {
+  color: var(--testo-2);
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.importa-riga-stato {
+  flex: 1;
+  text-align: right;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.importa-riga.in-corso .importa-riga-stato { color: var(--testo-2); animation: pulsa 1s infinite; }
+.importa-riga.ok  .importa-riga-stato { color: var(--verde); }
+.importa-riga.ko  .importa-riga-stato { color: var(--rosso); }
+
+@keyframes pulsa {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.importa-txt-barra-wrap {
+  height: 6px;
+  background: var(--bordo);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.importa-txt-barra {
+  height: 100%;
+  background: var(--primario);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
 .toast.errore   { background: var(--rosso); }
