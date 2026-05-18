@@ -66,6 +66,7 @@ async function caricaVini() {
 
 async function salvaVini(vini) {
   if (!GITHUB_TOKEN || !GITHUB_REPO) {
+    console.warn('⚠️  salvaVini: GITHUB_TOKEN/GITHUB_REPO non impostati → uso file locale');
     fs.writeFileSync(DATA_FILE, JSON.stringify(vini, null, 2), 'utf8');
     return;
   }
@@ -99,6 +100,17 @@ async function salvaVini(vini) {
   cacheVini = vini;
   cacheTime = Date.now();
 }
+
+// ─── Diagnostica storage (solo admin) ────────────────────────────────────────
+
+app.get('/api/admin/storage-info', requireAuth, (req, res) => {
+  res.json({
+    modalita:      (GITHUB_TOKEN && GITHUB_REPO) ? 'github' : 'locale',
+    github_repo:   GITHUB_REPO  || null,
+    token_presente: !!GITHUB_TOKEN,
+    cache_sha:     cacheSha || null,
+  });
+});
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
